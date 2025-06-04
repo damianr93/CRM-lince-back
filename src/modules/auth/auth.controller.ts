@@ -12,6 +12,7 @@ import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorators';
 import { AuthGuard } from './auth.guard';
+import { envs } from 'src/config/envs';
 
 @Controller('auth')
 export class AuthController {
@@ -33,7 +34,9 @@ export class AuthController {
 
         res.cookie('Authentication', token, {
             httpOnly: true,
-            sameSite: 'lax',
+            sameSite: (envs.SAMESITE === 'lax' || envs.SAMESITE === 'strict' || envs.SAMESITE === 'none')
+                ? envs.SAMESITE as 'lax' | 'strict' | 'none'
+                : 'none',
             maxAge: 24 * 60 * 60 * 1000,
         });
 
