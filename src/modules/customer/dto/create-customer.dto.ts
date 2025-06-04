@@ -50,7 +50,7 @@ export class CreateClientDto {
   @ApiProperty({ example: 6, minimum: 1, description: 'Meses que va a suplementar' })
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   mesesSuplemento: number;
 
   @ApiProperty({ example: 'PIPO Bovino 18%', description: 'Producto comprado' })
@@ -78,6 +78,14 @@ export class CreateClientDto {
   @MaxLength(300)
   observaciones?: string;
 
+  @ApiProperty({
+    enum: ['EZEQUIEL', 'DENIS', 'MARTIN', 'SIN_ASIGNAR'],
+    default: 'SIN_ASIGNAR',
+    description: 'Quien está siguiendo al cliente',
+  })
+  @IsOptional()
+  @IsString()
+  siguiendo?:string
 
   @IsOptional()
   @IsString()
