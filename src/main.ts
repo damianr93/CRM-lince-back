@@ -18,6 +18,7 @@ async function bootstrap() {
   app.enableVersioning({
     type: VersioningType.URI,
   });
+  console.log('front',envs.FRONTEND_URL);
   app.enableCors({
     origin: envs.FRONTEND_URL,
     credentials: true,
