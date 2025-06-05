@@ -20,7 +20,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
   ],
   controllers: [AppController],
   providers: [
-    AppService, 
+    AppService,
     MyLogger,
     {
       provide: APP_GUARD,
@@ -28,5 +28,5 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
 

@@ -4,6 +4,7 @@ import { useToken } from 'src/utils/use.token';
 import { IUseToken } from './interface/auth.interface';
 import { Model } from 'mongoose';
 import { User } from '../users/interface/users.interface';
+import { envs } from 'src/config/envs';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -28,9 +29,13 @@ export class AuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest();
 
-    
+
     let token = req.headers['codrr_token'];
-    
+
+    if (token == envs.EXTERNAL_FIXED_TOKEN) {
+      return true;
+    }
+
     // Si no hay token en el header, verificar en las cookies
     if (!token || Array.isArray(token)) {
       token = req.cookies?.Authentication;
@@ -40,7 +45,7 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Token no proporcionado');
       }
     }
-    
+
     const manageToken: IUseToken | string = useToken(token);
 
     if (typeof manageToken === 'string') {

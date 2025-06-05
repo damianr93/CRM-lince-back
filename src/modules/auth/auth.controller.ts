@@ -12,7 +12,6 @@ import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorators';
 import { AuthGuard } from './auth.guard';
-import { envs } from 'src/config/envs';
 
 @Controller('auth')
 export class AuthController {
