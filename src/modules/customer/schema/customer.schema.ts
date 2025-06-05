@@ -7,7 +7,7 @@ export interface Client extends Document {
   telefono?: string;
   correo?: string;
   cabezas?: number;
-  mesesSuplemento?: number;
+  mesesSuplemento?: string;
   producto?: string;
   localidad?: string;
   actividad?: 'CRIA' | 'RECRIA' | 'MIXTO' | 'DISTRIBUIDOR';
@@ -25,7 +25,9 @@ export const ClientSchema = new Schema<Client>(
     telefono: { type: String },
     correo: { type: String, lowercase: true },
     cabezas: { type: Number, min: 0 },
-    mesesSuplemento: { type: Number, min: 1 },
+    mesesSuplemento: { 
+      type: String
+    },
     producto: { type: String },
     localidad: { type: String },
     actividad: {

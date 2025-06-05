@@ -51,10 +51,7 @@ export class CreateClientDto {
 
   @ApiProperty({ example: 6, minimum: 0, description: 'Meses que va a suplementar' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  mesesSuplemento: number;
+  mesesSuplemento: string;
 
   @ApiProperty({ example: 'PIPO Bovino 18%', description: 'Producto comprado' })
   @IsOptional()
