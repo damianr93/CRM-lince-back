@@ -12,6 +12,7 @@ import {
   ApiProperty,
   ApiPropertyOptional,
 } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export enum Actividad {
   CRIA = 'CRIA',
@@ -43,12 +44,14 @@ export class CreateClientDto {
 
   @ApiProperty({ example: 120, minimum: 0, description: 'Cantidad de cabezas de ganado' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   cabezas: number;
 
-  @ApiProperty({ example: 6, minimum: 1, description: 'Meses que va a suplementar' })
+  @ApiProperty({ example: 6, minimum: 0, description: 'Meses que va a suplementar' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   mesesSuplemento: number;
@@ -86,6 +89,13 @@ export class CreateClientDto {
   @IsOptional()
   @IsString()
   siguiendo?:string
+
+  @ApiProperty({
+    enum: ['Instagram', 'Web', 'Whatsapp', 'Facebook', 'Otro'],
+    default: 'Otro',  
+  })
+  @IsOptional()
+  medioAdquisicion?: 'INSTAGRAM' | 'WEB' | 'WHATSAPP' | 'FACEBOOK' | 'OTRO';
 
   @IsOptional()
   @IsString()
