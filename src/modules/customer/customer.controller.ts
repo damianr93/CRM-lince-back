@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Delete, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Delete, UseGuards, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ClientsService } from './customer.service';
 import { CreateClientDto } from './dto/create-customer.dto';
 import { UpdateClientDto } from './dto/update-customer.dto';
 
 @Controller('clients')
 export class ClientsController {
-  constructor(private readonly clientsService: ClientsService) {}
+  constructor(private readonly clientsService: ClientsService) { }
 
   @Post()
   create(@Body() dto: CreateClientDto) {
@@ -31,4 +32,21 @@ export class ClientsController {
   remove(@Param('id') id: string) {
     return this.clientsService.remove(id);
   }
+
+  @Get('export/excel')
+  async downloadExcel(@Res() res: Response) {
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="clientes_completos.xlsx"',
+    );
+
+    await this.clientsService.generateExcel(res);
+
+  }
+
 }

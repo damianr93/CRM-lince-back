@@ -1,5 +1,4 @@
-// src/modules/clients/schemas/client.schema.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
 
 export interface Client extends Document {
   nombre: string;
@@ -16,6 +15,7 @@ export interface Client extends Document {
   siguiendo?: 'EZEQUIEL' | 'DENIS' | 'MARTIN' | 'SIN_ASIGNAR';
   observaciones?: string;
   createdAt?: Date;
+  provincia?: string;
 }
 
 export const ClientSchema = new Schema<Client>(
@@ -30,6 +30,7 @@ export const ClientSchema = new Schema<Client>(
     },
     producto: { type: String },
     localidad: { type: String },
+    provincia: { type: String },
     actividad: {
       type: String,
       enum: ['CRIA', 'RECRIA', 'MIXTO', 'DISTRIBUIDOR'],
