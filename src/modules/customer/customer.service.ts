@@ -17,7 +17,11 @@ export class ClientsService {
   }
 
   findAll() {
-    return this.clientModel.find().lean();
+    
+    const clients = this.clientModel.find().lean().sort({ createdAt: -1 });
+    
+    
+    return clients
   }
 
   findOne(id: string) {
