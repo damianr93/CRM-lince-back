@@ -20,4 +20,9 @@ export class AnalyticsController {
     return this.analyticsService.demandOfProduct();
   }
 
+  @Get('status')
+  purchaseStatus() {
+    return this.analyticsService.purchaseStatus();
+  }
+
 }

@@ -151,4 +151,52 @@ export class AnalyticsService {
       throw new InternalServerErrorException('Error al obtener demanda de productos');
     }
   }
+
+  async purchaseStatus(): Promise<{ status: string; total: number; percentage: number }[]> {
+  try {
+    const aggregation: Array<{ _id: string; count: number }> = await this.clientModel
+      .aggregate([
+        {
+          $group: {
+            _id: '$estado',
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { count: -1 },
+        },
+      ])
+      .exec();
+
+    const totalClients = await this.clientModel.countDocuments().exec();
+
+    const statusMap = {
+      'COMPRO': 'Compras',
+      'NO_COMPRO': 'No Compras', 
+      'PENDIENTE': 'Pendientes',
+    };
+
+    const statusCount = {
+      'Compras': 0,
+      'No Compras': 0,
+      'Pendientes': 0,
+    };
+
+    aggregation.forEach((entry) => {
+      const normalizedStatus = statusMap[entry._id] || 'Pendientes';
+      statusCount[normalizedStatus] += entry.count;
+    });
+
+    const result = Object.entries(statusCount).map(([status, total]) => ({
+      status,
+      total,
+      percentage: totalClients > 0 ? Math.round((total / totalClients) * 100) : 0,
+    }));
+
+    return result;
+  } catch (err) {
+    console.error('Error en AnalyticsService.purchaseStatus:', err);
+    throw new InternalServerErrorException('Error al obtener estado de compras');
+  }
+}
 }
