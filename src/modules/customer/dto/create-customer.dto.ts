@@ -94,6 +94,13 @@ export class CreateClientDto {
   @IsOptional()
   medioAdquisicion?: 'INSTAGRAM' | 'WEB' | 'WHATSAPP' | 'FACEBOOK' | 'OTRO';
 
+  @ApiProperty({
+    enum: ['COMPRO', 'NO_COMPRO', 'PENDIENTE'],
+    default: 'PENDIENTE',  
+  })
+  @IsOptional()
+  estado?: 'COMPRO' | 'NO_COMPRO' | 'PENDIENTE';
+
   @IsOptional()
   @IsString()
   @MaxLength(300)
