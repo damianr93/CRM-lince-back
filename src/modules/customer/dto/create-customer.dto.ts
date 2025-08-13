@@ -1,7 +1,6 @@
 import {
   IsString,
   IsEmail,
-  IsInt,
   IsEnum,
   Min,
   MaxLength,
@@ -12,7 +11,6 @@ import {
   ApiProperty,
   ApiPropertyOptional,
 } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 
 export enum Actividad {
   CRIA = 'CRIA',
@@ -25,12 +23,12 @@ export class CreateClientDto {
   @ApiProperty({ example: 'Juan', description: 'Nombre del cliente' })
   @IsString()
   @MaxLength(50)
-  nombre: string;
+  nombre?: string;
 
   @ApiProperty({ example: 'Pérez', description: 'Apellido del cliente' })
   @IsOptional()
   @MaxLength(50)
-  apellido: string;
+  apellido?: string;
 
   @ApiProperty({ example: '+54 9 351 555-1234', description: 'Teléfono de contacto' })
   @IsNotEmpty()
@@ -40,33 +38,32 @@ export class CreateClientDto {
   @ApiProperty({ example: 'juan@example.com', description: 'Correo electrónico' })
   @IsOptional()
   @IsEmail()
-  correo: string;
+  correo?: string;
 
   @ApiProperty({ example: 120, minimum: 0, description: 'Cantidad de cabezas de ganado' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsString()
   @Min(0)
-  cabezas: number;
+  cabezas?: string;
 
   @ApiProperty({ example: 6, minimum: 0, description: 'Meses que va a suplementar' })
   @IsOptional()
-  mesesSuplemento: string;
+  mesesSuplemento?: string;
 
   @ApiProperty({ example: 'PIPO Bovino 18%', description: 'Producto comprado' })
   @IsOptional()
   @IsString()
-  producto: string;
+  producto?: string;
 
   @ApiProperty({ example: 'Córdoba', description: 'Localidad del cliente' })
   @IsOptional()
   @IsString()
-  localidad: string;
+  localidad?: string;
 
   @ApiProperty({ enum: Actividad, description: 'Actividad principal' })
   @IsOptional()
   @IsEnum(Actividad)
-  actividad: Actividad;
+  actividad?: Actividad;
 
   @ApiPropertyOptional({
     example: 'Prefiere entrega los lunes por la mañana',

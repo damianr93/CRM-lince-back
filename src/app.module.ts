@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { ClientsModule } from './modules/customer/customer.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { SatisfactionModule } from './modules/satisfaction/satisfaction.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     UsersModule,
     AuthModule,
     ClientsModule,
-    AnalyticsModule
+    AnalyticsModule,
+    SatisfactionModule
   ],
   controllers: [AppController],
   providers: [

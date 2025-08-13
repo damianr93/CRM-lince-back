@@ -1,5 +1,11 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Model } from 'mongoose'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Model } from 'mongoose';
 import { Client } from './schema/customer.schema';
 import { CreateClientDto } from './dto/create-customer.dto';
 import { UpdateClientDto } from './dto/update-customer.dto';
@@ -10,18 +16,29 @@ import { Response } from 'express';
 export class ClientsService {
   constructor(
     @Inject('CLIENT_MODEL') private readonly clientModel: Model<Client>,
-  ) { }
+  ) {}
 
-  create(dto: CreateClientDto) {
-    return this.clientModel.create(dto);
+  async create(dto: CreateClientDto) {
+    try {
+      const createdCustomer = await this.clientModel.create(dto);
+
+      if (!createdCustomer) {
+        throw new BadRequestException('Error al crear el cliente');
+      }
+
+      return createdCustomer;
+    } catch (error) {
+      throw new InternalServerErrorException('Error al crear el cliente');
+    }
   }
 
   findAll() {
-    
-    const clients = this.clientModel.find().lean().sort({ createdAt: -1 });
-    
-    
-    return clients
+    try {
+      const clients = this.clientModel.find().lean().sort({ createdAt: -1 });
+      return clients;
+    } catch (error) {
+      throw new InternalServerErrorException('Error al obtener los clientes');
+    }
   }
 
   findOne(id: string) {
@@ -29,19 +46,26 @@ export class ClientsService {
   }
 
   async update(id: string, dto: UpdateClientDto) {
-    const updated = await this.clientModel
-      .findByIdAndUpdate(id, dto, { new: true })
-      .lean();
-    if (!updated) throw new NotFoundException('Cliente no encontrado');
-    return updated;
+    try {
+      const updated = await this.clientModel
+        .findByIdAndUpdate(id, dto, { new: true })
+        .lean();
+      if (!updated) throw new NotFoundException('Cliente no encontrado');
+      return updated;
+    } catch (error) {
+      throw new InternalServerErrorException('Error al actualizar el cliente');
+    }
   }
 
   remove(id: string) {
-    return this.clientModel.findByIdAndDelete(id);
+    try {
+      return this.clientModel.findByIdAndDelete(id);
+    } catch (error) {
+      throw new InternalServerErrorException('Error al eliminar el cliente');
+    }
   }
 
   async generateExcel(res: Response): Promise<void> {
-
     const clients = await this.clientModel.find();
     if (!clients || clients.length === 0) {
       throw new NotFoundException('No hay clientes para exportar');
@@ -68,9 +92,7 @@ export class ClientsService {
       { header: 'Medio Adq.', key: 'medioAdquisicion', width: 15 },
     ];
 
-    // 5) Insertar filas: convertimos cada cliente a un objeto con las keys definidas
     clients.forEach((c: any) => {
-      // Formatear la fecha de creación a string legible (por ejemplo "YYYY/MM/DD")
       let createdAtStr = '-';
       if (c.createdAt) {
         const d = new Date(c.createdAt);
@@ -122,5 +144,4 @@ export class ClientsService {
     await workbook.xlsx.write(res);
     res.end();
   }
-
 }

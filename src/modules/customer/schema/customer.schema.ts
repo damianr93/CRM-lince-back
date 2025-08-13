@@ -1,11 +1,11 @@
 import { Schema, Document } from 'mongoose';
 
 export interface Client extends Document {
-  nombre: string;
+  nombre?: string;
   apellido?: string;
-  telefono?: string;
+  telefono: string;
   correo?: string;
-  cabezas?: number;
+  cabezas?: string;
   mesesSuplemento?: string;
   producto?: string;
   localidad?: string;
@@ -20,11 +20,11 @@ export interface Client extends Document {
 
 export const ClientSchema = new Schema<Client>(
   {
-    nombre: { type: String, required: true },
+    nombre: { type: String},
     apellido: { type: String },
-    telefono: { type: String },
+    telefono: { type: String, required: true  },
     correo: { type: String, lowercase: true },
-    cabezas: { type: Number, min: 0 },
+    cabezas: { type: String },
     mesesSuplemento: { 
       type: String
     },
