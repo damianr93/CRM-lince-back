@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import helmet from 'helmet';
-import * as compression from 'compression'
+import * as compression from 'compression';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MyLogger } from './services/logger/logger';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +21,12 @@ async function bootstrap() {
 
   app.enableCors({
     origin: envs.FRONTEND_URL,
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'codrr_token',
+      'X-Requested-With',
+    ],
     credentials: true,
   });
 
@@ -38,6 +44,5 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   await app.listen(envs.PORT);
-};
+}
 bootstrap();
-
