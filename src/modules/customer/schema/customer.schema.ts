@@ -11,7 +11,7 @@ export interface Client extends Document {
   localidad?: string;
   actividad?: 'CRIA' | 'RECRIA' | 'MIXTO' | 'DISTRIBUIDOR';
   medioAdquisicion?: 'INSTAGRAM' | 'WEB' | 'WHATSAPP' | 'FACEBOOK' | 'OTRO';
-  estado?: 'PENDIENTE' | 'COMPRO' | 'NO_COMPRO';
+  estado?: 'PENDIENTE'| 'NO_CONTESTO' | 'SE_COTIZO_Y_PENDIENTE' | 'SE_COTIZO_Y_NO_INTERESO' | 'COMPRO';
   siguiendo?: 'EZEQUIEL' | 'DENIS' | 'MARTIN' | 'SIN_ASIGNAR';
   observaciones?: string;
   createdAt?: Date;
@@ -42,7 +42,7 @@ export const ClientSchema = new Schema<Client>(
     },
     estado: {
       type: String,
-      enum: ['PENDIENTE', 'COMPRO', 'NO_COMPRO'],
+      enum: ['PENDIENTE' ,'NO_CONTESTO' , 'SE_COTIZO_Y_PENDIENTE' , 'SE_COTIZO_Y_NO_INTERESO' , 'COMPRO'],
       default: 'PENDIENTE',
     },
     siguiendo: {
