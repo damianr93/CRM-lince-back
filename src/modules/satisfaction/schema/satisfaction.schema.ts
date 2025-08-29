@@ -1,6 +1,7 @@
 import { Schema } from 'mongoose';
 
 export interface Satisfaction extends Document {
+  name?: string;
   phone?: string;
   product?: string;
   comoNosConocio?:
@@ -26,6 +27,7 @@ export interface Satisfaction extends Document {
 
 export const SatisfactionSchema = new Schema<Satisfaction>(
   {
+    name: { type: String },
     phone: { type: String },
     product: { type: String },
     comoNosConocio: {
