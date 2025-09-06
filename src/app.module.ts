@@ -5,11 +5,13 @@ import { MyLogger } from './services/logger/logger';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { ClientsModule } from './modules/customer/customer.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SatisfactionModule } from './modules/satisfaction/satisfaction.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
   imports: [
@@ -27,6 +29,14 @@ import { SatisfactionModule } from './modules/satisfaction/satisfaction.module';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })
