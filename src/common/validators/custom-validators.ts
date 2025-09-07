@@ -25,18 +25,54 @@ export class CustomValidators {
   }
 
   /**
-   * Valida formato de teléfono (básico)
+   * Valida y normaliza formato de teléfono argentino
    */
   static validatePhone(phone: string, fieldName: string = 'telefono'): string {
     if (!phone) return phone; // Teléfono es opcional
     
     // Remover espacios, guiones y paréntesis
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // Normalizar números argentinos
+    cleanPhone = this.normalizeArgentinePhone(cleanPhone);
     
     // Validar que solo contenga números y tenga al menos 8 dígitos
     if (!/^\d{8,15}$/.test(cleanPhone)) {
       throw new BadRequestException(`El campo '${fieldName}' debe contener entre 8 y 15 dígitos`);
     }
+    
+    return cleanPhone;
+  }
+
+  /**
+   * Normaliza números de teléfono argentinos
+   */
+  private static normalizeArgentinePhone(phone: string): string {
+    // Si empieza con +549, removerlo
+    if (phone.startsWith('+549')) {
+      return phone.substring(4);
+    }
+    
+    // Si empieza con 549, removerlo
+    if (phone.startsWith('549')) {
+      return phone.substring(3);
+    }
+    
+    // Si empieza con +54, removerlo
+    if (phone.startsWith('+54')) {
+      return phone.substring(3);
+    }
+    
+    // Si empieza con 54, removerlo
+    if (phone.startsWith('54')) {
+      return phone.substring(2);
+    }
+    
+    // Si empieza con 0, removerlo (código de área local)
+    if (phone.startsWith('0')) {
+      return phone.substring(1);
+    }
+    
     return phone;
   }
 

@@ -178,6 +178,43 @@ export class ClientsService {
   }
 
   /**
+   * Normaliza números de teléfono argentinos
+   */
+  private normalizeArgentinePhone(phone: string): string {
+    if (!phone) return phone;
+    
+    // Remover espacios, guiones y paréntesis
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // Si empieza con +549, removerlo
+    if (cleanPhone.startsWith('+549')) {
+      return cleanPhone.substring(4);
+    }
+    
+    // Si empieza con 549, removerlo
+    if (cleanPhone.startsWith('549')) {
+      return cleanPhone.substring(3);
+    }
+    
+    // Si empieza con +54, removerlo
+    if (cleanPhone.startsWith('+54')) {
+      return cleanPhone.substring(3);
+    }
+    
+    // Si empieza con 54, removerlo
+    if (cleanPhone.startsWith('54')) {
+      return cleanPhone.substring(2);
+    }
+    
+    // Si empieza con 0, removerlo (código de área local)
+    if (cleanPhone.startsWith('0')) {
+      return cleanPhone.substring(1);
+    }
+    
+    return cleanPhone;
+  }
+
+  /**
    * Limpia datos del CRM/ManyChat removiendo placeholders y valores inválidos
    */
   private cleanCrmData(value: any): any {
@@ -244,6 +281,8 @@ export class ClientsService {
     if (dto.telefono !== undefined) {
       dto.telefono = this.cleanCrmData(dto.telefono);
       if (dto.telefono) {
+        // Normalizar teléfono argentino antes de validar
+        dto.telefono = this.normalizeArgentinePhone(dto.telefono);
         dto.telefono = CustomValidators.validatePhone(dto.telefono);
       }
     }
