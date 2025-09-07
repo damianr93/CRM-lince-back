@@ -19,8 +19,34 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
 
+  // Configurar orígenes permitidos
+  const allowedOrigins = [envs.FRONTEND_URL];
+  
+  // Agregar URLs adicionales si están configuradas
+  if (envs.ADDITIONAL_FRONTEND_URLS) {
+    const additionalUrls = envs.ADDITIONAL_FRONTEND_URLS
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+    allowedOrigins.push(...additionalUrls);
+  }
+
+  // En desarrollo, permitir localhost en diferentes puertos
+  if (envs.NODE_ENV === 'development') {
+    allowedOrigins.push(
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
+    );
+  }
+
   app.enableCors({
-    origin: envs.FRONTEND_URL,
+    origin: allowedOrigins,
     allowedHeaders: [
       'Content-Type',
       'Authorization',
@@ -28,6 +54,7 @@ async function bootstrap() {
       'X-Requested-With',
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

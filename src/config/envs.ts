@@ -8,4 +8,6 @@ export const envs = {
     PORT: get('PORT').required().asPortNumber(),
     FRONTEND_URL: get('FRONTEND_URL').required().asString(),
     EXTERNAL_FIXED_TOKEN: get('EXTERNAL_FIXED_TOKEN').required().asString(),
+    // URLs adicionales separadas por comas
+    ADDITIONAL_FRONTEND_URLS: get('ADDITIONAL_FRONTEND_URLS').default('').asString(),
 }
