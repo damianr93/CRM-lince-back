@@ -154,7 +154,7 @@ export class CreateClientDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.toUpperCase() : value,
   )
-  estado?: 'COMPRO' | 'NO_COMPRO' | 'PENDIENTE';
+  estado?: 'PENDIENTE' | 'DERIVADO_A_DISTRIBUIDOR' | 'NO_CONTESTO' | 'SE_COTIZO_Y_PENDIENTE' | 'SE_COTIZO_Y_NO_INTERESO' | 'COMPRO';
 
   @IsOptional()
   @IsString()
