@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Client } from './schema/customer.schema';
+import { CustomerFollowUpService } from './follow-up/customer-follow-up.service';
+import { CustomerStatus } from './follow-up/follow-up.types';
 import { CreateClientDto } from './dto/create-customer.dto';
 import { UpdateClientDto } from './dto/update-customer.dto';
 import * as ExcelJS from 'exceljs';
@@ -20,6 +22,7 @@ export class ClientsService {
 
   constructor(
     @Inject('CLIENT_MODEL') private readonly clientModel: Model<Client>,
+    private readonly followUpService: CustomerFollowUpService,
   ) {}
 
   async create(dto: CreateClientDto) {
@@ -46,6 +49,9 @@ export class ClientsService {
       }
 
       this.logger.log(`Cliente creado exitosamente: ${createdCustomer._id}`);
+
+      await this.scheduleFollowUpSafely(createdCustomer as Client, null);
+
       return createdCustomer;
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -124,15 +130,26 @@ export class ClientsService {
         }
       }
 
+      const currentClient = await this.clientModel.findById(id).lean();
+
+      if (!currentClient) {
+        throw new NotFoundException(`Cliente con ID ${id} no encontrado`);
+      }
+
+      const previousStatus = currentClient.estado as CustomerStatus | undefined;
+
       const updated = await this.clientModel
         .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
         .lean();
-        
+
       if (!updated) {
         throw new NotFoundException(`Cliente con ID ${id} no encontrado`);
       }
-      
+
       this.logger.log(`Cliente actualizado exitosamente: ${id}`);
+
+      await this.scheduleFollowUpSafely(updated as Client, previousStatus ?? null);
+
       return updated;
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
@@ -369,6 +386,26 @@ export class ClientsService {
       if (dto.localidad) {
         dto.localidad = CustomValidators.sanitizeText(dto.localidad);
       }
+    }
+  }
+
+
+  private async scheduleFollowUpSafely(
+    customer: Client,
+    previousStatus: CustomerStatus | null,
+  ): Promise<void> {
+    if (!customer) {
+      return;
+    }
+
+    try {
+      await this.followUpService.scheduleForStatusChange(customer, previousStatus);
+    } catch (error) {
+      const message = (error as Error)?.message ?? 'Error desconocido al programar seguimiento';
+      this.logger.warn(
+        `No se pudo programar el seguimiento automático para el cliente ${customer._id?.toString?.() ?? 'sin-id'}: ${message}`,
+        (error as Error)?.stack,
+      );
     }
   }
 

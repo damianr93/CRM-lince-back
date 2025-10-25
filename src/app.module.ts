@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MyLogger } from './services/logger/logger';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
@@ -16,6 +17,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     UsersModule,
     AuthModule,
     ClientsModule,
@@ -41,4 +43,3 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
   ],
 })
 export class AppModule { }
-

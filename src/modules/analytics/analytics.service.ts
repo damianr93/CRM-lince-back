@@ -1,20 +1,46 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+﻿import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { UpdateAnalyticsDto } from './dto/update-analytics.dto';
 import mongoose, { Model } from 'mongoose';
 import { Client } from '../customer/schema/customer.schema';
 import { ChannelData, ProductData, TimePoint } from './interface/analytics.interface';
+import { FollowUpEventsService } from '../customer/follow-up/follow-up-events.service';
+import {
+  FollowUpEventStatus,
+} from '../customer/follow-up/follow-up-event.schema';
+import { MessageChannelType } from '../customer/follow-up/follow-up.types';
+
+type FollowUpEventView = {
+  id: string;
+  customerName?: string;
+  customerLastName?: string;
+  assignedTo?: string;
+  customerPhone?: string;
+  product?: string;
+  triggerStatus: string;
+  templateId: string;
+  message: string;
+  channels: MessageChannelType[];
+  contactValue?: string | null;
+  scheduledFor: string;
+  status: FollowUpEventStatus;
+  readyAt?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  notes?: string | null;
+};
 
 @Injectable()
 export class AnalyticsService {
   constructor(
     @Inject('CLIENT_MODEL')
     private readonly clientModel: Model<Client>,
+    private readonly followUpEventsService: FollowUpEventsService,
   ) {}
 
   /**
    * Devuelve:
-   *  - totalContacts: número total de documentos en la colección clients
+   *  - totalContacts: nÃºmero total de documentos en la colecciÃ³n clients
    *  - byChannel: arreglo de { channel, total }, agrupado por medioAdquisicion
    */
   async totales(): Promise<{ totalContacts: number; byChannel: ChannelData[] }> {
@@ -22,7 +48,7 @@ export class AnalyticsService {
       // 1) Cuenta total de clientes
       const totalContacts = await this.clientModel.countDocuments().exec();
 
-      // 2) Agrupación por medioAdquisicion
+      // 2) AgrupaciÃ³n por medioAdquisicion
       const aggregation: Array<{ _id: string; count: number }> = await this.clientModel
         .aggregate([
           {
@@ -51,7 +77,7 @@ export class AnalyticsService {
 
   /**
    * Retorna un arreglo de { date: "YYYY-MM", total }, 
-   * contando cuántos clientes se crearon en cada mes de 2025.
+   * contando cuÃ¡ntos clientes se crearon en cada mes de 2025.
    */
   async evolution(): Promise<TimePoint[]> {
     try {
@@ -105,20 +131,20 @@ export class AnalyticsService {
         .aggregate(pipeline)
         .exec();
 
-      // Si quisieras asegurar que haya entrada para cada mes (incluso con total=0), podrías
-      // post-procesar aquí. Dejo la versión básica.
+      // Si quisieras asegurar que haya entrada para cada mes (incluso con total=0), podrÃ­as
+      // post-procesar aquÃ­. Dejo la versiÃ³n bÃ¡sica.
       return result.map((item) => ({
         date: item.date,
         total: item.total,
       }));
     } catch (err) {
       console.error('Error en AnalyticsService.evolution:', err);
-      throw new InternalServerErrorException('Error al obtener evolución de clientes');
+      throw new InternalServerErrorException('Error al obtener evoluciÃ³n de clientes');
     }
   }
 
   /**
-   * Retorna un arreglo de los productos más consultados/comprados:
+   * Retorna un arreglo de los productos mÃ¡s consultados/comprados:
    *  { product, total } ordenado de mayor a menor en base a la cuenta de clientes asociados a cada producto.
    */
   async demandOfProduct(): Promise<ProductData[]> {
@@ -199,4 +225,55 @@ export class AnalyticsService {
     throw new InternalServerErrorException('Error al obtener estado de compras');
   }
 }
+
+  async followUpEvents(assignedTo?: string, statusesParam?: string): Promise<FollowUpEventView[]> {
+    try {
+      let statuses: FollowUpEventStatus[] = ['READY'];
+
+      if (statusesParam) {
+        const parsed = statusesParam
+          .split(',')
+          .map((status) => status.trim().toUpperCase())
+          .filter((status): status is FollowUpEventStatus =>
+            ['READY', 'COMPLETED', 'CANCELLED', 'SCHEDULED'].includes(status),
+          );
+
+        if (parsed.length > 0) {
+          statuses = parsed;
+        }
+      }
+
+      const events = await this.followUpEventsService.getEventsByStatus(
+        statuses,
+        100,
+        assignedTo,
+      );
+
+      return events.map((event) => ({
+        id: event._id.toString(),
+        customerName: event.customerName,
+        customerLastName: event.customerLastName,
+        assignedTo: event.assignedTo,
+        customerPhone: event.customerPhone,
+        product: event.product,
+        triggerStatus: event.triggerStatus,
+        templateId: event.templateId,
+        message: event.message,
+        channels: event.channels as MessageChannelType[],
+        contactValue: event.contactValue ?? null,
+        scheduledFor: new Date(event.scheduledFor).toISOString(),
+        status: event.status as FollowUpEventStatus,
+        readyAt: event.readyAt ? new Date(event.readyAt).toISOString() : null,
+        createdAt: event.createdAt
+          ? new Date(event.createdAt).toISOString()
+          : new Date(event.scheduledFor).toISOString(),
+        completedAt: event.completedAt ? new Date(event.completedAt).toISOString() : null,
+        notes: event.notes ?? null,
+      }));
+    } catch (err) {
+      console.error('Error en AnalyticsService.followUpEvents:', err);
+      throw new InternalServerErrorException('Error al obtener eventos de seguimiento');
+    }
+  }
 }
+
