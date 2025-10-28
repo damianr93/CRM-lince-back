@@ -13,7 +13,6 @@ import {
 import { CustomerStatus, FollowUpTemplateId } from './follow-up.types';
 import { MessagingGateway } from './messaging/messaging.gateway';
 import { MessagePayload } from './messaging/message-channel.interface';
-// RespondIOContactNotFoundError eliminado - ya no se usa RESPOND_IO
 import { FollowUpEventsService } from './follow-up-events.service';
 import { FollowUpEvent } from './follow-up-event.schema';
 
@@ -89,6 +88,14 @@ export class CustomerFollowUpService {
       this.logger.log(
         `Follow-up event ${followUpEvent._id.toString()} scheduled for manual handling (automation disabled or no active channels).`,
       );
+      
+      // Marcar evento como READY para que aparezca en el frontend
+      await this.followUpEventsService.upsertManualStatus(
+        followUpEvent._id.toString(),
+        'READY',
+        'No automation available - manual handling required'
+      );
+      
       return;
     }
 
@@ -206,6 +213,7 @@ export class CustomerFollowUpService {
           customerLastName: customer.apellido,
           templateId: task.templateId,
           status: customer.estado,
+          advisor: customer.siguiendo, // ← Pasar el asesor aquí
         },
       };
 
@@ -223,6 +231,9 @@ export class CustomerFollowUpService {
         },
       );
       await this.syncEventStatusFromTask(task, 'SENT');
+      
+      // Enviar correo de confirmación al asesor
+      await this.sendTaskResultEmail(task, customer, 'SENT', null);
     } catch (error: any) {
       // RespondIOContactNotFoundError eliminado - ya no se usa RESPOND_IO
 
@@ -256,6 +267,12 @@ export class CustomerFollowUpService {
       );
       await this.markTaskAs(task._id as Types.ObjectId, 'FAILED', message);
       await this.syncEventStatusFromTask(task, 'FAILED', message);
+      
+      // Enviar correo de fallo al asesor
+      const customer = await this.clientModel.findById(task.customerId).lean();
+      if (customer) {
+        await this.sendTaskResultEmail(task, customer, 'FAILED', message);
+      }
     }
   }
 
@@ -361,6 +378,157 @@ export class CustomerFollowUpService {
     } catch (error: any) {
       this.logger.error(
         `Failed to send manual follow-up notification to ${email}: ${error?.message ?? 'unknown error'}`,
+        error?.stack,
+      );
+    }
+  }
+
+  private async sendAdvisorReminderEmail(event: FollowUpEvent): Promise<void> {
+    const { email, displayName } = this.resolveAssigneeEmail(event.assignedTo);
+
+    if (!email) {
+      this.logger.warn(
+        `No notification email configured for assignee ${event.assignedTo ?? 'sin asignar'} (event ${
+          event._id?.toString?.() ?? 'n/a'
+        }).`,
+      );
+      return;
+    }
+
+    const customerFullName = [event.customerName, event.customerLastName]
+      .filter((value) => Boolean(value && value.trim().length > 0))
+      .join(' ')
+      .trim();
+
+    const statusLabel = this.humanizeStatus(event.triggerStatus);
+    const scheduledDate = this.formatDateTime(event.scheduledFor);
+    const contactLine = this.buildContactLine(event);
+
+    const subject = `📋 Recordatorio de Seguimiento - ${customerFullName || 'Cliente sin nombre'} • ${statusLabel}`;
+
+    const bodyLines = [
+      `Hola ${displayName},`,
+      '',
+      'Se ha programado un seguimiento automático para el siguiente cliente:',
+      '',
+      `• Cliente: ${customerFullName || 'Cliente sin nombre'}`,
+      `• Estado que disparó: ${statusLabel}`,
+      `• Producto: ${event.product ?? 'Sin especificar'}`,
+      `• Programado para: ${scheduledDate}`,
+      contactLine ? `• Contacto: ${contactLine}` : null,
+      '',
+      'Mensaje sugerido:',
+      '',
+      event.message,
+      '',
+      'El sistema intentará enviar el mensaje automáticamente. Si hay algún problema, recibirás una notificación adicional.',
+      '',
+      '— Lince IT',
+    ].filter((line): line is string => line !== null);
+
+    const payload: MessagePayload = {
+      recipient: email,
+      subject,
+      body: bodyLines.join('\n'),
+      metadata: {
+        followUpEventId: event._id?.toString(),
+        customerId: event.customerId?.toString?.(),
+        templateId: event.templateId,
+        assignedTo: event.assignedTo,
+        type: 'ADVISOR_REMINDER',
+      },
+    };
+
+    try {
+      await this.messagingGateway.dispatch('INTERNAL_EMAIL', payload);
+      this.logger.log(
+        `Advisor reminder email sent to ${email} for event ${event._id?.toString?.() ?? 'n/a'}`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send advisor reminder email to ${email}: ${error?.message ?? 'unknown error'}`,
+        error?.stack,
+      );
+    }
+  }
+
+  private async sendTaskResultEmail(
+    task: FollowUpTask,
+    customer: Client,
+    result: 'SENT' | 'FAILED',
+    errorMessage?: string | null,
+  ): Promise<void> {
+    const { email, displayName } = this.resolveAssigneeEmail(customer.siguiendo);
+
+    if (!email) {
+      this.logger.warn(
+        `No notification email configured for assignee ${customer.siguiendo ?? 'sin asignar'} (task ${
+          task._id?.toString?.() ?? 'n/a'
+        }).`,
+      );
+      return;
+    }
+
+    const customerFullName = [customer.nombre, customer.apellido]
+      .filter((value) => Boolean(value && value.trim().length > 0))
+      .join(' ')
+      .trim();
+
+    const statusLabel = this.humanizeStatus(task.triggerStatus);
+    const scheduledDate = this.formatDateTime(task.executeAt);
+    const contactValue = customer.telefono || customer.correo || 'Sin contacto';
+
+    const subject = result === 'SENT' 
+      ? `✅ WhatsApp Enviado - ${customerFullName || 'Cliente sin nombre'} • ${statusLabel}`
+      : `❌ Fallo en WhatsApp - ${customerFullName || 'Cliente sin nombre'} • ${statusLabel}`;
+
+    const bodyLines = [
+      `Hola ${displayName},`,
+      '',
+      result === 'SENT' 
+        ? 'El seguimiento automático se ejecutó exitosamente:'
+        : 'El seguimiento automático falló y requiere acción manual:',
+      '',
+      `• Cliente: ${customerFullName || 'Cliente sin nombre'}`,
+      `• Estado que disparó: ${statusLabel}`,
+      `• Producto: ${customer.producto ?? 'Sin especificar'}`,
+      `• Contacto: ${contactValue}`,
+      `• Programado para: ${scheduledDate}`,
+      result === 'FAILED' && errorMessage ? `• Error: ${errorMessage}` : null,
+      '',
+      'Mensaje enviado/intentado:',
+      '',
+      this.buildMessage(task.templateId, customer),
+      '',
+      result === 'SENT' 
+        ? 'El cliente recibió el mensaje automáticamente. Puedes hacer seguimiento adicional si necesitas.'
+        : 'Por favor, contacta manualmente al cliente usando la información proporcionada.',
+      '',
+      '— Lince IT',
+    ].filter((line): line is string => line !== null);
+
+    const payload: MessagePayload = {
+      recipient: email,
+      subject,
+      body: bodyLines.join('\n'),
+      metadata: {
+        taskId: task._id?.toString(),
+        customerId: customer._id?.toString(),
+        templateId: task.templateId,
+        assignedTo: customer.siguiendo,
+        type: 'TASK_RESULT',
+        result,
+      },
+    };
+
+    try {
+      await this.messagingGateway.dispatch('INTERNAL_EMAIL', payload);
+      this.logger.log(
+        `Task result email sent to ${email} for task ${task._id?.toString?.() ?? 'n/a'} (${result})`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send task result email to ${email}: ${error?.message ?? 'unknown error'}`,
         error?.stack,
       );
     }

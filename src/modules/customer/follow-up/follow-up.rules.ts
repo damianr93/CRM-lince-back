@@ -23,17 +23,20 @@ import { getActiveChannels } from './messaging/channel-config';
 
 export const CUSTOMER_FOLLOW_UP_RULES: Partial<Record<CustomerStatus, FollowUpRule>> = {
   NO_CONTESTO: {
-    delayMs: 24 * HOUR_IN_MS, // 24 horas
+    //delayMs: 24 * HOUR_IN_MS, // 24 horas
+    delayMs: 1 * 60 * 1000, // 1 minuto
     templateId: 'NO_RESPONSE_24H',
     delivery: getActiveChannels(),
   },
   SE_COTIZO_Y_PENDIENTE: {
-    delayMs: 48 * HOUR_IN_MS, // 48 horas
+    //delayMs: 48 * HOUR_IN_MS, // 48 horas
+    delayMs: 1 * 60 * 1000, // 1 minuto
     templateId: 'QUOTE_PENDING_48H',
     delivery: getActiveChannels(),
   },
   COMPRO: {
-    delayMs: 14 * DAY_IN_MS, // 14 días
+    //delayMs: 14 * DAY_IN_MS, // 14 días
+    delayMs: 1 * 60 * 1000, // 1 minuto
     templateId: 'SATISFACTION_14D',
     delivery: getActiveChannels(),
   },

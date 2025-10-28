@@ -8,7 +8,7 @@ export type CustomerStatus =
 
 export type ContactPreference = 'PHONE' | 'EMAIL';
 
-export type MessageChannelType = 'WHATSAPP_API' | 'INTERNAL_EMAIL';
+export type MessageChannelType = 'YCLOUD_WHATSAPP' | 'INTERNAL_EMAIL';
 
 export type FollowUpTaskStatus =
   | 'PENDING'

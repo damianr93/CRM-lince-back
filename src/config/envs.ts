@@ -16,11 +16,6 @@ export const envs = {
     MAILER_SECURE: get('MAILER_SECURE').default('false').asBool(),
     MAILER_EMAIL: get('MAILER_EMAIL').default('').asString(),
     MAILER_SECRET_KEY: get('MAILER_SECRET_KEY').default('').asString(),
-    // WhatsApp Business API Configuration (opcional)
-    WHATSAPP_API_TOKEN: get('WHATSAPP_API_TOKEN').default('').asString(),
-    WHATSAPP_API_PHONE_NUMBER_ID: get('WHATSAPP_API_PHONE_NUMBER_ID').default('').asString(),
-    WHATSAPP_API_BUSINESS_ACCOUNT_ID: get('WHATSAPP_API_BUSINESS_ACCOUNT_ID').default('').asString(),
-    WHATSAPP_API_ENABLED: get('WHATSAPP_API_ENABLED').default('false').asBool(),
     // Respond.io Configuration
     RESPOND_IO_TOKEN: get('RESPOND_IO_TOKEN').default('').asString(),
     RESPOND_IO_CHANNEL_ID: get('RESPOND_IO_CHANNEL_ID').default('').asString(),
@@ -32,4 +27,13 @@ export const envs = {
     FOLLOW_UP_NOTIFY_DENIS_EMAIL: get('FOLLOW_UP_NOTIFY_DENIS_EMAIL').default('').asString(),
     FOLLOW_UP_NOTIFY_MARTIN_EMAIL: get('FOLLOW_UP_NOTIFY_MARTIN_EMAIL').default('').asString(),
     FOLLOW_UP_NOTIFY_SIN_ASIGNAR_EMAIL: get('FOLLOW_UP_NOTIFY_SIN_ASIGNAR_EMAIL').default('').asString(),
+    // YCloud Configuration
+    YCLOUD_API_KEY: get('YCLOUD_API_KEY').default('').asString(),
+    YCLOUD_BASE_URL: get('YCLOUD_BASE_URL').default('https://api.ycloud.com/v2').asString(),
+    YCLOUD_ENABLED: get('YCLOUD_ENABLED').default('false').asBool(),
+    
+    // YCloud WhatsApp Numbers Configuration
+    YCLOUD_EZEQUIEL_PHONE: get('YCLOUD_EZEQUIEL_PHONE').default('').asString(),
+    YCLOUD_DENIS_PHONE: get('YCLOUD_DENIS_PHONE').default('').asString(),
+    YCLOUD_MARTIN_PHONE: get('YCLOUD_MARTIN_PHONE').default('').asString(),
 };

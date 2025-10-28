@@ -8,15 +8,12 @@ import { FollowUpEventsController } from './follow-up/follow-up-events.controlle
 import { CustomerFollowUpService } from './follow-up/customer-follow-up.service';
 import { MessagingProviders } from './follow-up/messaging/messaging.providers';
 import { MessagingGateway } from './follow-up/messaging/messaging.gateway';
-import { WhatsAppAPIController } from './follow-up/messaging/whatsapp-api.controller';
-import { WhatsAppAPIService } from './follow-up/messaging/whatsapp-api.service';
 import { FollowUpEventsService } from './follow-up/follow-up-events.service';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [
     ClientsController, 
-    WhatsAppAPIController,
     FollowUpEventsController,
   ],
   providers: [
@@ -28,13 +25,11 @@ import { FollowUpEventsService } from './follow-up/follow-up-events.service';
     ClientsService,
     CustomerFollowUpService,
     FollowUpEventsService,
-    WhatsAppAPIService,
   ],
   exports: [
     ...ClientProviders, 
     CustomerFollowUpService,
     FollowUpEventsService,
-    WhatsAppAPIService
   ],
 })
 export class ClientsModule {}

@@ -3,18 +3,19 @@
 // ========================================
 // 
 // CONFIGURACIÓN ACTUAL:
-// - WhatsApp Business API: Desactivado temporalmente
-// - RESPOND_IO: Eliminado completamente
-// - EMAIL para clientes: Eliminado completamente
+// - YCloud WhatsApp: Canal principal para mensajería
 // - EMAIL interno al equipo: Siempre activo
 //
-// Para activar WhatsApp, cambiar WHATSAPP_API de null a la configuración
+// Para activar YCloud, configurar las variables de entorno correspondientes
 
 import { FollowUpDeliveryOption } from '../follow-up.rules';
 
 export const CHANNEL_CONFIG: Record<string, FollowUpDeliveryOption | null> = {
-  // WhatsApp Business API - Desactivado temporalmente
-  WHATSAPP_API: null,
+  // YCloud WhatsApp - Canal principal
+  YCLOUD_WHATSAPP: {
+    channel: 'YCLOUD_WHATSAPP',
+    contactPreference: 'PHONE'
+  },
 };
 
 /**

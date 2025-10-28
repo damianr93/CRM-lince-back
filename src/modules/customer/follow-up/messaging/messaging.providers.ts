@@ -1,4 +1,4 @@
-import { WhatsAppAPIMessagingChannel } from './whatsapp-api.channel';
+import { YCloudMessagingChannel } from './ycloud-api.channel';
 import { InternalEmailChannel } from './internal-email.channel';
 import { MessagingChannel } from './message-channel.interface';
 import { envs } from '../../../../config/envs';
@@ -9,9 +9,9 @@ export const MessagingProviders = [
     useFactory: (): MessagingChannel[] => {
       const channels: MessagingChannel[] = [];
 
-      // Agregar WhatsApp Business API si está habilitado
-      if (envs.WHATSAPP_API_ENABLED) {
-        channels.push(new WhatsAppAPIMessagingChannel('WHATSAPP_API'));
+      // Agregar YCloud si está habilitado
+      if (envs.YCLOUD_ENABLED) {
+        channels.push(new YCloudMessagingChannel('YCLOUD_WHATSAPP'));
       }
 
       // Agregar canal de correos internos (siempre activo)
