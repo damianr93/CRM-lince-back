@@ -23,6 +23,13 @@ export class YCloudMessagingChannel implements MessagingChannel {
   private readonly logger: Logger;
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  
+  // Mapeo entre templateId interno y nombre de plantilla en YCloud
+  private readonly templateMap: Record<string, { name: string; languageCode: string }> = {
+    QUOTE_PENDING_48H: { name: 'followup48', languageCode: 'es_AR' },
+    NO_RESPONSE_24H: { name: 'followup24', languageCode: 'es_AR' },
+    // SATISFACTION_14D: { name: 'satisfaction14', languageCode: 'es_AR' }, // habilitar cuando exista en YCloud
+  };
 
   constructor(public readonly type: MessageChannelType) {
     this.logger = new Logger(`YCloudMessagingChannel:${type}`);
@@ -56,8 +63,20 @@ export class YCloudMessagingChannel implements MessagingChannel {
         throw new Error(`Número de teléfono inválido: ${payload.recipient}`);
       }
 
-      // Intentar enviar mensaje
-      await this.sendWhatsAppMessage(fromNumber, formattedNumber, payload.body);
+      // Intentar enviar mensaje: plantilla si hay mapeo, sino texto como fallback
+      const templateData = this.buildTemplatePayload(
+        (payload.metadata as any)?.templateId,
+        {
+          nombre: (payload.metadata as any)?.customerName,
+          producto: (payload.metadata as any)?.product,
+        },
+      );
+
+      if (templateData) {
+        await this.sendWhatsAppTemplate(fromNumber, formattedNumber, templateData);
+      } else {
+        await this.sendWhatsAppText(fromNumber, formattedNumber, payload.body);
+      }
 
       this.logger.log(
         `YCloud WhatsApp enviado exitosamente desde ${fromNumber} a ${formattedNumber} | Asesor: ${payload.metadata?.advisor}`,
@@ -115,13 +134,12 @@ export class YCloudMessagingChannel implements MessagingChannel {
     return `+${cleaned}`;
   }
 
-  private async sendWhatsAppMessage(
+  private async sendWhatsAppText(
     fromNumber: string,
     toNumber: string,
     message: string,
   ): Promise<void> {
     try {
-      // Intentar enviar mensaje https://api.ycloud.com/v2/whatsapp/messages/sendDirectly
       const response = await fetch(`${this.baseUrl}/whatsapp/messages/sendDirectly`, {
         method: 'POST',
         headers: {
@@ -131,51 +149,111 @@ export class YCloudMessagingChannel implements MessagingChannel {
         body: JSON.stringify({
           from: fromNumber,
           to: toNumber,
-          type: "text",
+          type: 'text',
           text: { body: message },
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        // Si es error de contacto no encontrado, crear contacto y reintentar
-        if (this.isContactNotFoundError(errorData)) {
-          await this.createContact(toNumber);
-
-          // Reintentar envío
-          const retryResponse = await fetch(
-            `${this.baseUrl}/whatsapp/messages/sendDirectly`,
-            {
-              method: 'POST',
-              headers: {
-                'X-API-Key': this.apiKey,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: fromNumber,
-                type: "text",
-                to: toNumber,
-                text: { body: message },
-              }),
-            },
-          );
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              `Error al reintentar envío: ${retryResponse.statusText}`,
-            );
-          }
-        } else {
-          throw new Error(
-            `Error de YCloud: ${errorData.message || response.statusText}`,
-          );
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Error en sendWhatsAppMessage: ${error.message}`);
+      await this.handleSendResponse(response, fromNumber, toNumber, {
+        type: 'text',
+        text: { body: message },
+      });
+    } catch (error: any) {
+      this.logger.error(`Error en sendWhatsAppText: ${error.message}`);
       throw error;
     }
+  }
+
+  private async sendWhatsAppTemplate(
+    fromNumber: string,
+    toNumber: string,
+    templateData: { type: 'template'; template: any },
+  ): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/whatsapp/messages/sendDirectly`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromNumber,
+          to: toNumber,
+          ...templateData,
+        }),
+      });
+
+      await this.handleSendResponse(response, fromNumber, toNumber, templateData);
+    } catch (error: any) {
+      this.logger.error(`Error en sendWhatsAppTemplate: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async handleSendResponse(
+    response: Response,
+    fromNumber: string,
+    toNumber: string,
+    payloadSent: any,
+  ): Promise<void> {
+    if (response.ok) {
+      return;
+    }
+
+    const errorData = await response.json().catch(() => ({}));
+
+    if (this.isContactNotFoundError(errorData)) {
+      await this.createContact(toNumber);
+
+      const retryResponse = await fetch(
+        `${this.baseUrl}/whatsapp/messages/sendDirectly`,
+        {
+          method: 'POST',
+          headers: {
+            'X-API-Key': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ from: fromNumber, to: toNumber, ...payloadSent }),
+        },
+      );
+
+      if (!retryResponse.ok) {
+        throw new Error(`Error al reintentar envío: ${retryResponse.statusText}`);
+      }
+      return;
+    }
+
+    throw new Error(`Error de YCloud: ${errorData.message || response.statusText}`);
+  }
+
+  private buildTemplatePayload(
+    templateId?: string,
+    ctx?: { nombre?: string; producto?: string },
+  ): { type: 'template'; template: any } | null {
+    if (!templateId) return null;
+    const def = this.templateMap[templateId];
+    if (!def) return null;
+
+    const components: any[] = [];
+    // Si tus plantillas usan variables, agregalas aquí en el mismo orden
+    // components.push({
+    //   type: 'body',
+    //   parameters: [
+    //     { type: 'text', text: ctx?.nombre ?? '' },
+    //     { type: 'text', text: ctx?.producto ?? '' },
+    //   ],
+    // });
+
+    const template: any = {
+      name: def.name,
+      language: { code: def.languageCode, policy: 'deterministic' },
+    };
+
+    if (components.length > 0) {
+      template.components = components;
+    }
+
+    return { type: 'template', template };
   }
 
   private async createContact(phoneNumber: string): Promise<void> {
