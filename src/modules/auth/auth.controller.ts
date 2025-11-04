@@ -22,8 +22,6 @@ export class AuthController {
     @Post('login')
     async login(
         @Body() { username, password }: { username: string; password: string },
-        @Res({ passthrough: true }) res: Response,
-        @Req() req: Request,
     ) {
         const user = await this.authService.validateUser(username, password);
 
@@ -33,23 +31,25 @@ export class AuthController {
             role: user.role,
         });
 
-        const isProduction = process.env.NODE_ENV === 'production';
-        const isSecure = req.secure || req.get('X-Forwarded-Proto') === 'https';
-        const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-
-        const cookieOptions = {
-            httpOnly: true,
-            secure: isProduction && isSecure, 
-            sameSite: (isProduction && !isLocalhost) ? 'none' as const : 'lax' as const,
-            maxAge: 24 * 60 * 60 * 1000, 
-            path: '/', 
-        };
-
-        res.cookie('Authentication', token, cookieOptions);
+        const plainUser = (typeof user.toObject === 'function' ? user.toObject() : user) as Record<string, any>;
+        const plainId = plainUser?.id;
+        const plainObjectId = plainUser?._id;
+        const resolvedId =
+            (typeof user.id === 'string' && user.id) ||
+            plainId ||
+            (plainObjectId && typeof plainObjectId.toString === 'function'
+                ? plainObjectId.toString()
+                : plainObjectId);
+        const resolvedUsername = plainUser?.username ?? user.username;
+        const resolvedRole = plainUser?.role ?? user.role;
 
         return {
-            ...user,
-            ...(process.env.NODE_ENV === 'development' && { token })
+            token,
+            user: {
+                id: resolvedId,
+                username: resolvedUsername,
+                role: resolvedRole,
+            },
         };
     }
 

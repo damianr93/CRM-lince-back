@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { sanitizeProductName } from '../utils/product-sanitizer.util';
 
 export enum Actividad {
   CRIA = 'CRIA',
@@ -88,9 +89,7 @@ export class CreateClientDto {
   })
   @IsOptional()
   @IsString()
-  @Transform(({ value }) =>
-    value === null || value === undefined ? undefined : String(value),
-  )
+  @Transform(({ value }) => sanitizeProductName(value))
   producto?: string;
 
   @ApiProperty({ example: 'Córdoba', description: 'Localidad del cliente' })
