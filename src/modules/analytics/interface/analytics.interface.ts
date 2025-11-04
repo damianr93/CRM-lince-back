@@ -9,6 +9,6 @@ export interface TimePoint {
 }
 
 export interface ProductData {
-  product: string;
+  product: string | null;
   total: number;
 }
