@@ -41,6 +41,22 @@ export class LoggingInterceptor implements NestInterceptor {
       tap({
         next: (data) => {
           const responseTime = Date.now() - now;
+          
+          // Calcular tamaño de data de forma segura
+          let dataSize: number | string = 0;
+          try {
+            if (Buffer.isBuffer(data)) {
+              dataSize = data.length;
+            } else if (data && typeof data === 'object' && 'getStream' in data) {
+              // StreamableFile de NestJS
+              dataSize = 'stream';
+            } else if (data !== undefined && data !== null) {
+              dataSize = JSON.stringify(data).length;
+            }
+          } catch (error) {
+            dataSize = 'unknown';
+          }
+          
           this.logger.log(
             `Outgoing Response: ${method} ${url} - ${response.statusCode} (${responseTime}ms)`,
             {
@@ -48,7 +64,7 @@ export class LoggingInterceptor implements NestInterceptor {
               url,
               statusCode: response.statusCode,
               responseTime,
-              dataSize: JSON.stringify(data).length,
+              dataSize,
               timestamp: new Date().toISOString(),
             }
           );
