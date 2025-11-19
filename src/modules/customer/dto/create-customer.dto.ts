@@ -5,6 +5,7 @@ import {
   MaxLength,
   IsOptional,
   IsNotEmpty,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -162,4 +163,13 @@ export class CreateClientDto {
     value === null || value === undefined ? undefined : String(value),
   )
   createdAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Marca si el registro es una reconsulta detectada automáticamente',
+    default: false,
+    readOnly: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isReconsulta?: boolean;
 }

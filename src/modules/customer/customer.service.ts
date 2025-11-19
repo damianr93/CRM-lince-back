@@ -31,16 +31,20 @@ export class ClientsService {
       this.validateClientData(dto);
 
       // Verificar si ya existe un cliente con el mismo teléfono
+      let isReconsulta = false;
       if (dto.telefono) {
-        const existingClient = await this.clientModel.findOne({ 
-          telefono: dto.telefono 
+        const existingClient = await this.clientModel.findOne({
+          telefono: dto.telefono,
         });
         if (existingClient) {
-          throw new BadRequestException(
-            `Ya existe un cliente con el teléfono ${dto.telefono}`
+          isReconsulta = true;
+          this.logger.log(
+            `Reconsulta detectada para el teléfono ${dto.telefono}, cliente original ${existingClient._id}`,
           );
         }
       }
+
+      dto.isReconsulta = isReconsulta;
 
       const createdCustomer = await this.clientModel.create(dto);
 

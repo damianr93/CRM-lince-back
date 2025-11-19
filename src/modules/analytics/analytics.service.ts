@@ -40,35 +40,44 @@ export class AnalyticsService {
 
   /**
    * Devuelve:
-   *  - totalContacts: nÃºmero total de documentos en la colecciÃ³n clients
+   *  - totalContacts: numero total de documentos en la coleccion clients
+   *  - totalReconsultas: cantidad de registros marcados como reconsulta
+   *  - firstTimeContacts: contactos unicos sin reconsulta
    *  - byChannel: arreglo de { channel, total }, agrupado por medioAdquisicion
    */
-  async totales(): Promise<{ totalContacts: number; byChannel: ChannelData[] }> {
+  async totales(): Promise<{
+    totalContacts: number;
+    totalReconsultas: number;
+    firstTimeContacts: number;
+    byChannel: ChannelData[];
+  }> {
     try {
-      // 1) Cuenta total de clientes
-      const totalContacts = await this.clientModel.countDocuments().exec();
-
-      // 2) AgrupaciÃ³n por medioAdquisicion
-      const aggregation: Array<{ _id: string; count: number }> = await this.clientModel
-        .aggregate([
-          {
-            $group: {
-              _id: '$medioAdquisicion',
-              count: { $sum: 1 },
+      const [totalContacts, totalReconsultas, aggregation] = await Promise.all([
+        this.clientModel.countDocuments().exec(),
+        this.clientModel.countDocuments({ isReconsulta: true }).exec(),
+        this.clientModel
+          .aggregate([
+            {
+              $group: {
+                _id: '$medioAdquisicion',
+                count: { $sum: 1 },
+              },
             },
-          },
-          {
-            $sort: { count: -1 }, // opcional: ordenar de mayor a menor
-          },
-        ])
-        .exec();
+            {
+              $sort: { count: -1 }, // opcional: ordenar de mayor a menor
+            },
+          ])
+          .exec(),
+      ]);
+
+      const firstTimeContacts = Math.max(totalContacts - totalReconsultas, 0);
 
       const byChannel: ChannelData[] = aggregation.map((entry) => ({
         channel: entry._id || 'OTRO',
         total: entry.count,
       }));
 
-      return { totalContacts, byChannel };
+      return { totalContacts, totalReconsultas, firstTimeContacts, byChannel };
     } catch (err) {
       console.error('Error en AnalyticsService.totales:', err);
       throw new InternalServerErrorException('Error al obtener totales de clientes');

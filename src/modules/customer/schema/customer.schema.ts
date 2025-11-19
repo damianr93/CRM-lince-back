@@ -16,6 +16,7 @@ export interface Client extends Document {
   observaciones?: string;
   createdAt?: Date;
   provincia?: string;
+  isReconsulta?: boolean;
 }
 
 export const ClientSchema = new Schema<Client>(
@@ -55,6 +56,10 @@ export const ClientSchema = new Schema<Client>(
       type: Date,
       default: Date.now,
       immutable: false
+    },
+    isReconsulta: {
+      type: Boolean,
+      default: false,
     },
   },
   {
