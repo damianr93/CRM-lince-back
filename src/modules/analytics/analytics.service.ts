@@ -47,7 +47,6 @@ type LocationSummary = {
   topProvinces: Array<{ name: string; total: number; percentage: number }>;
   topLocalities: Array<{ name: string; province: string; total: number; percentage: number }>;
   mapPoints: Array<{ name: string; lat: number; lon: number; total: number }>;
-  heatmapProvinces: LocationHeatmap['provinces'];
 };
 
 type LocationHeatmap = {
@@ -394,7 +393,6 @@ export class AnalyticsService {
         .slice(0, 6);
 
       const mapPoints = await this.getMapPoints(report, filters);
-      const heatmapProvinces = this.buildHeatmapProvinces(report);
 
       return {
         total,
@@ -402,7 +400,6 @@ export class AnalyticsService {
         topProvinces,
         topLocalities,
         mapPoints,
-        heatmapProvinces,
       };
     } catch (err) {
       console.error('Error en AnalyticsService.locationSummary:', err);
