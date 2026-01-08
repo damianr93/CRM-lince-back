@@ -127,7 +127,7 @@ export class GeoService {
     }
 
     const url =
-      'https://wms.ign.gob.ar/geoserver/ign/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:provincia&outputFormat=application/json';
+      'https://wms.ign.gob.ar/geoserver/ign/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:provincia&outputFormat=application/json&srsName=EPSG:4326';
     try {
       const response = await fetch(url, {
         headers: {
