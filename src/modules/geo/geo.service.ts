@@ -175,9 +175,10 @@ export class GeoService {
     if (typeof input[0] === 'number' && typeof input[1] === 'number') {
       let x = input[0];
       let y = input[1];
-      if (Math.abs(x) > 180 || Math.abs(y) > 90) {
-        x = x / 100000;
-        y = y / 100000;
+      if (Math.abs(x) > 1000 || Math.abs(y) > 1000) {
+        const converted = this.mercatorToWgs84(x, y);
+        x = converted[0];
+        y = converted[1];
       }
       if (Math.abs(x) <= 90 && Math.abs(y) > 90) {
         return [y, x];
@@ -185,6 +186,14 @@ export class GeoService {
       return [x, y];
     }
     return input.map((item) => this.swapAndScaleCoordinates(item));
+  }
+
+  private mercatorToWgs84(x: number, y: number): [number, number] {
+    const radius = 6378137;
+    const lon = (x / radius) * (180 / Math.PI);
+    const lat =
+      (2 * Math.atan(Math.exp(y / radius)) - Math.PI / 2) * (180 / Math.PI);
+    return [lon, lat];
   }
 
   private buildQueryVariants(query: string): string[] {
