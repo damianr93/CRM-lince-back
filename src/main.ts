@@ -8,8 +8,12 @@ import { MyLogger } from './services/logger/logger';
 import { ConfigService } from '@nestjs/config';
 import { envs } from './config/envs';
 import * as cookieParser from 'cookie-parser';
+import { webcrypto } from 'crypto';
 
 async function bootstrap() {
+  if (!globalThis.crypto) {
+    globalThis.crypto = webcrypto as typeof globalThis.crypto;
+  }
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
