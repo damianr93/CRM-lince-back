@@ -11,6 +11,7 @@ import { AuthGuard } from './modules/auth/auth.guard';
 import { ClientsModule } from './modules/customer/customer.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SatisfactionModule } from './modules/satisfaction/satisfaction.module';
+import { GeoModule } from './modules/geo/geo.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -22,7 +23,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthModule,
     ClientsModule,
     AnalyticsModule,
-    SatisfactionModule
+    SatisfactionModule,
+    GeoModule
   ],
   controllers: [AppController],
   providers: [

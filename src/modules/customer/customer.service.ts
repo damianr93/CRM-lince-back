@@ -391,6 +391,55 @@ export class ClientsService {
         dto.localidad = CustomValidators.sanitizeText(dto.localidad);
       }
     }
+
+    // Limpiar provincia (opcional)
+    if (dto.provincia !== undefined) {
+      dto.provincia = this.cleanCrmData(dto.provincia);
+      if (dto.provincia) {
+        dto.provincia = CustomValidators.sanitizeText(dto.provincia);
+      }
+    }
+
+    if (dto.ubicacion !== undefined) {
+      const ubicacion = dto.ubicacion ?? {};
+
+      if (ubicacion.pais !== undefined) {
+        ubicacion.pais = this.cleanCrmData(ubicacion.pais);
+        if (ubicacion.pais) {
+          ubicacion.pais = CustomValidators.sanitizeText(ubicacion.pais);
+        }
+      }
+
+      if (ubicacion.provincia !== undefined) {
+        ubicacion.provincia = this.cleanCrmData(ubicacion.provincia);
+        if (ubicacion.provincia) {
+          ubicacion.provincia = CustomValidators.sanitizeText(ubicacion.provincia);
+        }
+      }
+
+      if (ubicacion.localidad !== undefined) {
+        ubicacion.localidad = this.cleanCrmData(ubicacion.localidad);
+        if (ubicacion.localidad) {
+          ubicacion.localidad = CustomValidators.sanitizeText(ubicacion.localidad);
+        }
+      }
+
+      if (ubicacion.zona !== undefined) {
+        ubicacion.zona = this.cleanCrmData(ubicacion.zona);
+        if (ubicacion.zona) {
+          ubicacion.zona = CustomValidators.sanitizeText(ubicacion.zona);
+        }
+      }
+
+      if (ubicacion.displayName !== undefined) {
+        ubicacion.displayName = this.cleanCrmData(ubicacion.displayName);
+        if (ubicacion.displayName) {
+          ubicacion.displayName = CustomValidators.sanitizeText(ubicacion.displayName);
+        }
+      }
+
+      dto.ubicacion = ubicacion;
+    }
   }
 
 

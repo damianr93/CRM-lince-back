@@ -9,13 +9,25 @@ export interface Client extends Document {
   mesesSuplemento?: string;
   producto?: string;
   localidad?: string;
+  provincia?: string;
+  ubicacion?: {
+    pais?: string;
+    provincia?: string;
+    localidad?: string;
+    zona?: string;
+    lat?: number;
+    lon?: number;
+    displayName?: string;
+    fuente?: string;
+    esNormalizada?: boolean;
+    normalizacionFallidaAt?: Date;
+  };
   actividad?: 'CRIA' | 'RECRIA' | 'MIXTO' | 'DISTRIBUIDOR';
   medioAdquisicion?: 'INSTAGRAM' | 'WEB' | 'WHATSAPP' | 'FACEBOOK' | 'OTRO';
   estado?: 'PENDIENTE'| 'DERIVADO_A_DISTRIBUIDOR' | 'NO_CONTESTO' | 'SE_COTIZO_Y_PENDIENTE' | 'SE_COTIZO_Y_NO_INTERESO' | 'COMPRO';
   siguiendo?: 'EZEQUIEL' | 'DENIS' | 'MARTIN' | 'SIN_ASIGNAR';
   observaciones?: string;
   createdAt?: Date;
-  provincia?: string;
   isReconsulta?: boolean;
 }
 
@@ -32,6 +44,18 @@ export const ClientSchema = new Schema<Client>(
     producto: { type: String },
     localidad: { type: String },
     provincia: { type: String },
+    ubicacion: {
+      pais: { type: String },
+      provincia: { type: String },
+      localidad: { type: String },
+      zona: { type: String },
+      lat: { type: Number },
+      lon: { type: Number },
+      displayName: { type: String },
+      fuente: { type: String },
+      esNormalizada: { type: Boolean, default: false },
+      normalizacionFallidaAt: { type: Date },
+    },
     actividad: {
       type: String,
       enum: ['CRIA', 'RECRIA', 'MIXTO', 'DISTRIBUIDOR'],

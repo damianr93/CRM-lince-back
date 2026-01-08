@@ -6,9 +6,11 @@ import {
   IsOptional,
   IsNotEmpty,
   IsBoolean,
+  IsNumber,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { sanitizeProductName } from '../utils/product-sanitizer.util';
 
 export enum Actividad {
@@ -16,6 +18,64 @@ export enum Actividad {
   RECRIA = 'RECRIA',
   MIXTO = 'MIXTO',
   DISTRIBUIDOR = 'DISTRIBUIDOR',
+}
+
+export class UbicacionDto {
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  pais?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  provincia?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  localidad?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  zona?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  lat?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  lon?: number;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  fuente?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  esNormalizada?: boolean;
 }
 
 export class CreateClientDto {
@@ -100,6 +160,22 @@ export class CreateClientDto {
     value === null || value === undefined ? undefined : String(value),
   )
   localidad?: string;
+
+  @ApiPropertyOptional({ example: 'Córdoba', description: 'Provincia del cliente' })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value === null || value === undefined ? undefined : String(value),
+  )
+  provincia?: string;
+
+  @ApiPropertyOptional({
+    description: 'Ubicación normalizada (pais, provincia, localidad, zona, coordenadas)',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UbicacionDto)
+  ubicacion?: UbicacionDto;
 
   @ApiProperty({ enum: Actividad, description: 'Actividad principal' })
   @IsOptional()

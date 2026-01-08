@@ -3,9 +3,10 @@ import { AnalyticsService } from './analytics.service';
 import { AnalyticsController } from './analytics.controller';
 import { DatabaseModule } from 'src/services/database/database.module';
 import { ClientsModule } from '../customer/customer.module';
+import { GeoModule } from '../geo/geo.module';
 
 @Module({
-  imports: [DatabaseModule, ClientsModule],
+  imports: [DatabaseModule, ClientsModule, GeoModule],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],
 })

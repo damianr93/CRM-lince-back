@@ -60,7 +60,11 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useLogger(app.get(MyLogger));
   app.use(compression());
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('CRM API Documentation :)')
