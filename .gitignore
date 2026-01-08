@@ -12,6 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+reporte_ubicacion_clientes.pdf
+clientes_completos.xlsx
+
 # OS
 .DS_Store
 

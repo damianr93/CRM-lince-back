@@ -34,6 +34,7 @@ Sistema completo de gestión de clientes con seguimiento automático y mensajer�
 - **Métricas de conversión** por estado
 - **Reportes de satisfacción** del cliente
 - **Estadísticas de mensajería**
+- **Reportes por ubicación** con PDF descargable y mapa de calor
 
 ### Autenticación y Seguridad
 - **JWT Authentication** con refresh tokens
@@ -148,12 +149,32 @@ POST   /auth/logout          # Cerrar sesión
 - Conversión por estados
 - Estadísticas de mensajería
 - Reportes de rendimiento
+- Resumen de ubicaciones (top provincias/localidades)
+- PDF de clientes por ubicación con filtros
+- Mapa de calor por provincia
 
 **Endpoints:**
 ```
 GET    /analytics/dashboard  # Dashboard principal
 GET    /analytics/conversion # Métricas de conversión
 GET    /analytics/messaging  # Estadísticas de mensajería
+GET    /analytics/location-summary     # Resumen de ubicaciones
+GET    /analytics/location-heatmap     # Mapa de calor por provincia
+GET    /analytics/location-report/pdf  # Reporte PDF por ubicación
+```
+
+### 🌍 Geo Module
+**Normalización y búsqueda de ubicaciones**
+
+**Funcionalidades:**
+- Búsqueda de ubicaciones con API externa
+- Normalización y persistencia de ubicación verificada
+- GeoJSON de provincias argentinas para mapas
+
+**Endpoints:**
+```
+GET    /geo/search              # Búsqueda de ubicaciones
+GET    /geo/argentina-provinces  # GeoJSON de provincias
 ```
 
 ### 😊 Satisfaction Module
@@ -294,6 +315,11 @@ ADDITIONAL_FRONTEND_URLS=
 EXTERNAL_FIXED_TOKEN=tu_token_externo_aqui
 
 # ========================================
+# GEO / UBICACIONES (Nominatim)
+# ========================================
+# No requiere API key, usa Nominatim (OpenStreetMap)
+
+# ========================================
 # EMAIL (OPCIONAL)
 # ========================================
 MAILER_HOST=smtp.gmail.com
@@ -377,6 +403,11 @@ src/
 - **DTOs**: Validación de datos
 - **Schemas**: Modelos de MongoDB
 - **Guards**: Autenticación y autorización
+
+### Ubicaciones verificadas
+- La ubicación escrita por el cliente se conserva (raw).
+- La ubicación verificada se guarda en `ubicacion.*` y es la que usa analytics/PDF.
+- Si la API no encuentra resultados, el registro queda como “sin ubicación verificada”.
 
 ### Testing
 ```bash
