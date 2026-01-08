@@ -127,7 +127,7 @@ export class GeoService {
     }
 
     const url =
-      'https://wms.ign.gob.ar/geoserver/ign/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:provincia&outputFormat=application/json&srsName=EPSG:4326';
+      'https://wms.ign.gob.ar/geoserver/ign/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:provincia&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=30';
     try {
       const response = await fetch(url, {
         headers: {
@@ -139,11 +139,52 @@ export class GeoService {
         throw new Error(`IGN error: ${response.status}`);
       }
       const data = await response.json();
-      this.provincesCache = { expiresAt: now + this.provincesTtlMs, data };
-      return data;
+      const normalized = this.normalizeGeoJsonCoordinates(data);
+      this.provincesCache = { expiresAt: now + this.provincesTtlMs, data: normalized };
+      return normalized;
     } catch (error) {
       throw new InternalServerErrorException('No se pudo obtener el mapa provincial');
     }
+  }
+
+  private normalizeGeoJsonCoordinates(data: any): any {
+    if (!data || !Array.isArray(data.features)) {
+      return data;
+    }
+    const features = data.features.map((feature: any) => {
+      if (!feature?.geometry?.coordinates) {
+        return feature;
+      }
+      const coords = feature.geometry.coordinates;
+      const normalizedCoords = this.swapAndScaleCoordinates(coords);
+      return {
+        ...feature,
+        geometry: {
+          ...feature.geometry,
+          coordinates: normalizedCoords,
+        },
+      };
+    });
+    return { ...data, features };
+  }
+
+  private swapAndScaleCoordinates(input: any): any {
+    if (!Array.isArray(input)) {
+      return input;
+    }
+    if (typeof input[0] === 'number' && typeof input[1] === 'number') {
+      let x = input[0];
+      let y = input[1];
+      if (Math.abs(x) > 180 || Math.abs(y) > 90) {
+        x = x / 100000;
+        y = y / 100000;
+      }
+      if (Math.abs(x) <= 90 && Math.abs(y) > 90) {
+        return [y, x];
+      }
+      return [x, y];
+    }
+    return input.map((item) => this.swapAndScaleCoordinates(item));
   }
 
   private buildQueryVariants(query: string): string[] {
