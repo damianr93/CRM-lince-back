@@ -344,7 +344,10 @@ export class AnalyticsService {
 
   async locationSummary(filters: LocationFilters): Promise<LocationSummary> {
     try {
-      await this.ensureNormalizedLocations(filters);
+      // Ejecutar normalización en background sin bloquear la respuesta
+      this.ensureNormalizedLocations(filters).catch((err) => {
+        console.error('Error normalizando ubicaciones en background:', err);
+      });
       const report = await this.buildLocationReport(filters);
       const total = report.total;
       const topProvinceMap = new Map<
@@ -409,7 +412,10 @@ export class AnalyticsService {
 
   async locationHeatmap(filters: LocationFilters): Promise<LocationHeatmap> {
     try {
-      await this.ensureNormalizedLocations(filters);
+      // Ejecutar normalización en background sin bloquear la respuesta
+      this.ensureNormalizedLocations(filters).catch((err) => {
+        console.error('Error normalizando ubicaciones en background:', err);
+      });
       const report = await this.buildLocationReport(filters);
       const provinces = this.buildHeatmapProvinces(report);
       return { total: report.total, provinces };
@@ -420,7 +426,10 @@ export class AnalyticsService {
   }
 
   async locationReportPdf(filters: LocationFilters): Promise<Buffer> {
-    await this.ensureNormalizedLocations(filters);
+    // Ejecutar normalización en background sin bloquear la generación del PDF
+    this.ensureNormalizedLocations(filters).catch((err) => {
+      console.error('Error normalizando ubicaciones en background:', err);
+    });
     const report = await this.buildLocationReport(filters);
     const clients = await this.findClientsForReport(filters);
     return this.generateLocationPdf(report, clients, filters);
