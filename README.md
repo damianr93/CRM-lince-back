@@ -388,6 +388,23 @@ CMD ["npm", "run", "start:prod"]
 
 ## 💻 Desarrollo
 
+## 🔒 Actualización de seguridad (Mar 2026)
+
+Se aplicaron actualizaciones de dependencias para mitigar vulnerabilidades reportadas por `npm audit` en el backend.
+
+### Cambios aplicados
+- `bcrypt` actualizado a `^6.0.0` para eliminar la cadena vulnerable de `@mapbox/node-pre-gyp` y `tar`.
+- `@typescript-eslint/eslint-plugin` actualizado a `^8.56.1`.
+- `@typescript-eslint/parser` actualizado a `^8.56.1`.
+- `@nestjs/schematics` actualizado a `^11.0.9`.
+- Se agregó `overrides.ajv = 8.18.0` en `package.json`.
+
+### Verificación
+```bash
+npm audit
+# resultado esperado: found 0 vulnerabilities
+```
+
 ### Estructura de Archivos
 ```
 src/
