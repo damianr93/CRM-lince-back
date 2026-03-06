@@ -1,4 +1,4 @@
-﻿import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { UpdateAnalyticsDto } from './dto/update-analytics.dto';
 import mongoose, { Model } from 'mongoose';
@@ -34,6 +34,7 @@ type FollowUpEventView = {
 };
 
 type LocationFilters = {
+  year?: number;
   startDate?: string;
   endDate?: string;
   provincias?: string[];
@@ -95,6 +96,51 @@ export class AnalyticsService {
     private readonly geoService: GeoService,
   ) {}
 
+  private getYearDateRange(year: number): { start: Date; end: Date } {
+    return {
+      start: new Date(`${year}-01-01T00:00:00.000Z`),
+      end: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+    };
+  }
+
+  private buildCreatedAtMatchForYear(year?: number): Record<string, unknown> {
+    if (!year) {
+      return {};
+    }
+    const { start, end } = this.getYearDateRange(year);
+    return {
+      createdAt: {
+        $gte: start,
+        $lt: end,
+      },
+    };
+  }
+
+  private buildLocationDateMatch(filters: LocationFilters): Record<string, any> {
+    if (filters.startDate || filters.endDate) {
+      const createdAt: Record<string, Date> = {};
+      if (filters.startDate) {
+        createdAt.$gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        createdAt.$lte = new Date(filters.endDate);
+      }
+      return { createdAt };
+    }
+
+    if (filters.year) {
+      const { start, end } = this.getYearDateRange(filters.year);
+      return {
+        createdAt: {
+          $gte: start,
+          $lt: end,
+        },
+      };
+    }
+
+    return {};
+  }
+
   /**
    * Devuelve:
    *  - totalContacts: numero total de documentos en la coleccion clients
@@ -102,18 +148,22 @@ export class AnalyticsService {
    *  - firstTimeContacts: contactos unicos sin reconsulta
    *  - byChannel: arreglo de { channel, total }, agrupado por medioAdquisicion
    */
-  async totales(): Promise<{
+  async totales(year?: number): Promise<{
     totalContacts: number;
     totalReconsultas: number;
     firstTimeContacts: number;
     byChannel: ChannelData[];
   }> {
     try {
+      const createdAtMatch = this.buildCreatedAtMatchForYear(year);
       const [totalContacts, totalReconsultas, aggregation] = await Promise.all([
-        this.clientModel.countDocuments().exec(),
-        this.clientModel.countDocuments({ isReconsulta: true }).exec(),
+        this.clientModel.countDocuments(createdAtMatch).exec(),
+        this.clientModel.countDocuments({ ...createdAtMatch, isReconsulta: true }).exec(),
         this.clientModel
           .aggregate([
+            ...(Object.keys(createdAtMatch).length > 0
+              ? [{ $match: createdAtMatch }]
+              : []),
             {
               $group: {
                 _id: '$medioAdquisicion',
@@ -145,11 +195,10 @@ export class AnalyticsService {
    * Retorna un arreglo de { date: "YYYY-MM", total }, 
    * contando cuÃ¡ntos clientes se crearon en cada mes de 2025.
    */
-  async evolution(): Promise<TimePoint[]> {
+  async evolution(year?: number): Promise<TimePoint[]> {
     try {
-      // Podemos parametrizar el rango, pero de momento fija 2025.
-      const startOfYear = new Date('2025-01-01T00:00:00.000Z');
-      const endOfYear = new Date('2025-12-31T23:59:59.999Z');
+      const targetYear = year ?? new Date().getFullYear();
+      const { start: startOfYear, end: endOfYear } = this.getYearDateRange(targetYear);
 
       const pipeline: mongoose.PipelineStage[] = [
         {
@@ -197,15 +246,80 @@ export class AnalyticsService {
         .aggregate(pipeline)
         .exec();
 
-      // Si quisieras asegurar que haya entrada para cada mes (incluso con total=0), podrÃ­as
-      // post-procesar aquÃ­. Dejo la versiÃ³n bÃ¡sica.
-      return result.map((item) => ({
-        date: item.date,
-        total: item.total,
-      }));
+      const byMonth = new Map<string, number>();
+      result.forEach((item) => byMonth.set(item.date, item.total));
+
+      const points: TimePoint[] = [];
+      for (let month = 1; month <= 12; month += 1) {
+        const monthLabel = `${targetYear}-${month.toString().padStart(2, '0')}`;
+        points.push({
+          date: monthLabel,
+          total: byMonth.get(monthLabel) ?? 0,
+        });
+      }
+      return points;
     } catch (err) {
       console.error('Error en AnalyticsService.evolution:', err);
       throw new InternalServerErrorException('Error al obtener evoluciÃ³n de clientes');
+    }
+  }
+
+  async yearlyComparison(years: number[]): Promise<Array<Record<string, string | number>>> {
+    try {
+      const selectedYears = years.length > 0 ? years : [new Date().getFullYear() - 1, new Date().getFullYear()];
+      const startYear = Math.min(...selectedYears);
+      const endYear = Math.max(...selectedYears);
+      const { start } = this.getYearDateRange(startYear);
+      const { end } = this.getYearDateRange(endYear);
+
+      const aggregation: Array<{ _id: { year: number; month: number }; count: number }> =
+        await this.clientModel
+          .aggregate([
+            {
+              $match: {
+                createdAt: {
+                  $gte: start,
+                  $lt: end,
+                },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$createdAt' },
+                  month: { $month: '$createdAt' },
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ])
+          .exec();
+
+      const totals = new Map<string, number>();
+      aggregation.forEach((item) => {
+        const year = item._id.year;
+        if (!selectedYears.includes(year)) {
+          return;
+        }
+        const key = `${year}-${item._id.month}`;
+        totals.set(key, item.count);
+      });
+
+      const comparison: Array<Record<string, string | number>> = [];
+      for (let month = 1; month <= 12; month += 1) {
+        const row: Record<string, string | number> = {
+          month: month.toString().padStart(2, '0'),
+        };
+        selectedYears.forEach((year) => {
+          const key = `y${year}`;
+          row[key] = totals.get(`${year}-${month}`) ?? 0;
+        });
+        comparison.push(row);
+      }
+      return comparison;
+    } catch (err) {
+      console.error('Error en AnalyticsService.yearlyComparison:', err);
+      throw new InternalServerErrorException('Error al obtener comparaciÃ³n anual');
     }
   }
 
@@ -213,10 +327,14 @@ export class AnalyticsService {
    * Retorna un arreglo de los productos mÃ¡s consultados/comprados:
    *  { product, total } ordenado de mayor a menor en base a la cuenta de clientes asociados a cada producto.
    */
-  async demandOfProduct(): Promise<ProductData[]> {
+  async demandOfProduct(year?: number): Promise<ProductData[]> {
     try {
+      const createdAtMatch = this.buildCreatedAtMatchForYear(year);
       const aggregation: Array<{ _id: string; count: number }> = await this.clientModel
         .aggregate([
+          ...(Object.keys(createdAtMatch).length > 0
+            ? [{ $match: createdAtMatch }]
+            : []),
           {
             $group: {
               _id: '$producto',
@@ -244,10 +362,14 @@ export class AnalyticsService {
     }
   }
 
-  async purchaseStatus(): Promise<{ status: string; total: number; percentage: number }[]> {
+  async purchaseStatus(year?: number): Promise<{ status: string; total: number; percentage: number }[]> {
   try {
+    const createdAtMatch = this.buildCreatedAtMatchForYear(year);
     const aggregation: Array<{ _id: string; count: number }> = await this.clientModel
       .aggregate([
+        ...(Object.keys(createdAtMatch).length > 0
+          ? [{ $match: createdAtMatch }]
+          : []),
         {
           $group: {
             _id: '$estado',
@@ -260,7 +382,7 @@ export class AnalyticsService {
       ])
       .exec();
 
-    const totalClients = await this.clientModel.countDocuments().exec();
+    const totalClients = await this.clientModel.countDocuments(createdAtMatch).exec();
 
     const statusMap = {
       'COMPRO': 'Compras',
@@ -533,16 +655,7 @@ export class AnalyticsService {
   }
 
   private async buildLocationAggregations(filters: LocationFilters): Promise<LocationReport> {
-    const matchDate: Record<string, any> = {};
-    if (filters.startDate || filters.endDate) {
-      matchDate.createdAt = {};
-      if (filters.startDate) {
-        matchDate.createdAt.$gte = new Date(filters.startDate);
-      }
-      if (filters.endDate) {
-        matchDate.createdAt.$lte = new Date(filters.endDate);
-      }
-    }
+    const matchDate = this.buildLocationDateMatch(filters);
 
     const invalidTokens = [
       '-',
@@ -978,16 +1091,7 @@ export class AnalyticsService {
     report: LocationReport,
     filters: LocationFilters,
   ): Promise<LocationSummary['mapPoints']> {
-    const matchDate: Record<string, any> = {};
-    if (filters.startDate || filters.endDate) {
-      matchDate.createdAt = {};
-      if (filters.startDate) {
-        matchDate.createdAt.$gte = new Date(filters.startDate);
-      }
-      if (filters.endDate) {
-        matchDate.createdAt.$lte = new Date(filters.endDate);
-      }
-    }
+    const matchDate = this.buildLocationDateMatch(filters);
 
     const matchResolved: Record<string, any> = {};
     if (filters.provincias && filters.provincias.length > 0) {
@@ -1170,15 +1274,7 @@ export class AnalyticsService {
 
   private async findClientsForReport(filters: LocationFilters): Promise<Client[]> {
     const query: Record<string, any> = {};
-    if (filters.startDate || filters.endDate) {
-      query.createdAt = {};
-      if (filters.startDate) {
-        query.createdAt.$gte = new Date(filters.startDate);
-      }
-      if (filters.endDate) {
-        query.createdAt.$lte = new Date(filters.endDate);
-      }
-    }
+    Object.assign(query, this.buildLocationDateMatch(filters));
     if (filters.provincias && filters.provincias.length > 0) {
       query['ubicacion.esNormalizada'] = true;
       query['ubicacion.provincia'] = { $in: filters.provincias };
@@ -1730,15 +1826,7 @@ export class AnalyticsService {
       ],
     };
 
-    if (filters.startDate || filters.endDate) {
-      query.createdAt = {};
-      if (filters.startDate) {
-        query.createdAt.$gte = new Date(filters.startDate);
-      }
-      if (filters.endDate) {
-        query.createdAt.$lte = new Date(filters.endDate);
-      }
-    }
+    Object.assign(query, this.buildLocationDateMatch(filters));
 
     for (let batchIndex = 0; batchIndex < this.normalizationMaxBatches; batchIndex += 1) {
       const candidates = await this.clientModel

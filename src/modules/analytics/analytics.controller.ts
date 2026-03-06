@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { Public } from '../auth/decorators/public.decorators';
 
 type LocationFilters = {
+  year?: number;
   startDate?: string;
   endDate?: string;
   provincias?: string[];
@@ -16,23 +17,28 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('totales')
-  totales() {
-    return this.analyticsService.totales();
+  totales(@Query('year') year?: string) {
+    return this.analyticsService.totales(this.parseYear(year));
   }
 
   @Get('evolucion')
-  evolution() {
-    return this.analyticsService.evolution();
+  evolution(@Query('year') year?: string) {
+    return this.analyticsService.evolution(this.parseYear(year));
+  }
+
+  @Get('yearly-comparison')
+  yearlyComparison(@Query('years') years?: string) {
+    return this.analyticsService.yearlyComparison(this.parseYears(years));
   }
 
   @Get('demand-of-product')
-  demandOfProduct() {
-    return this.analyticsService.demandOfProduct();
+  demandOfProduct(@Query('year') year?: string) {
+    return this.analyticsService.demandOfProduct(this.parseYear(year));
   }
 
   @Get('status')
-  purchaseStatus() {
-    return this.analyticsService.purchaseStatus();
+  purchaseStatus(@Query('year') year?: string) {
+    return this.analyticsService.purchaseStatus(this.parseYear(year));
   }
 
   @Get('follow-up-events')
@@ -106,12 +112,39 @@ export class AnalyticsController {
     };
 
     return {
+      year: this.parseYear(query.year),
       startDate: query.startDate,
       endDate: query.endDate,
       provincias: parseList(query.provincias),
       paises: parseList(query.paises),
       zonas: parseList(query.zonas),
     };
+  }
+
+  private parseYear(value?: string): number | undefined {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 2000 || parsed > 2100) {
+      return undefined;
+    }
+    return parsed;
+  }
+
+  private parseYears(value?: string): number[] {
+    if (!value) {
+      const currentYear = new Date().getFullYear();
+      return [currentYear - 1, currentYear];
+    }
+    const years = value
+      .split(',')
+      .map((item) => this.parseYear(item.trim()))
+      .filter((year): year is number => year !== undefined);
+
+    if (years.length === 0) {
+      const currentYear = new Date().getFullYear();
+      return [currentYear - 1, currentYear];
+    }
+    return Array.from(new Set(years)).sort((a, b) => a - b);
   }
 
 }

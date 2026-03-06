@@ -158,8 +158,13 @@ POST   /auth/logout          # Cerrar sesión
 GET    /analytics/dashboard  # Dashboard principal
 GET    /analytics/conversion # Métricas de conversión
 GET    /analytics/messaging  # Estadísticas de mensajería
-GET    /analytics/location-summary     # Resumen de ubicaciones
-GET    /analytics/location-heatmap     # Mapa de calor por provincia
+GET    /analytics/totales?year=2026         # Totales filtrados por año (opcional)
+GET    /analytics/evolucion?year=2026       # Evolución mensual por año (default: año actual)
+GET    /analytics/yearly-comparison?years=2025,2026  # Comparación interanual mensual
+GET    /analytics/demand-of-product?year=2026         # Top productos por año (opcional)
+GET    /analytics/status?year=2026           # Estado de compras por año (opcional)
+GET    /analytics/location-summary?year=2026  # Resumen de ubicaciones por año o rango
+GET    /analytics/location-heatmap?year=2026  # Mapa de calor por provincia por año o rango
 GET    /analytics/location-report/pdf  # Reporte PDF por ubicación
 ```
 
