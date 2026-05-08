@@ -102,6 +102,7 @@ export class YCloudMessagingChannel implements MessagingChannel {
       EZEQUIEL: envs.YCLOUD_EZEQUIEL_PHONE,
       DENIS: envs.YCLOUD_DENIS_PHONE,
       MARTIN: envs.YCLOUD_MARTIN_PHONE,
+      JULIAN: envs.YCLOUD_JULIAN_PHONE,
     };
 
     return advisorPhones[advisor] || null;
@@ -112,6 +113,7 @@ export class YCloudMessagingChannel implements MessagingChannel {
       EZEQUIEL: envs.FOLLOW_UP_NOTIFY_EZEQUIEL_EMAIL,
       DENIS: envs.FOLLOW_UP_NOTIFY_DENIS_EMAIL,
       MARTIN: envs.FOLLOW_UP_NOTIFY_MARTIN_EMAIL,
+      JULIAN: envs.FOLLOW_UP_NOTIFY_JULIAN_EMAIL,
     };
 
     return advisorEmails[advisor] || null;

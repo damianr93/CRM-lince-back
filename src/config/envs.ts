@@ -26,6 +26,7 @@ export const envs = {
     FOLLOW_UP_NOTIFY_EZEQUIEL_EMAIL: get('FOLLOW_UP_NOTIFY_EZEQUIEL_EMAIL').default('').asString(),
     FOLLOW_UP_NOTIFY_DENIS_EMAIL: get('FOLLOW_UP_NOTIFY_DENIS_EMAIL').default('').asString(),
     FOLLOW_UP_NOTIFY_MARTIN_EMAIL: get('FOLLOW_UP_NOTIFY_MARTIN_EMAIL').default('').asString(),
+    FOLLOW_UP_NOTIFY_JULIAN_EMAIL: get('FOLLOW_UP_NOTIFY_JULIAN_EMAIL').default('').asString(),
     FOLLOW_UP_NOTIFY_SIN_ASIGNAR_EMAIL: get('FOLLOW_UP_NOTIFY_SIN_ASIGNAR_EMAIL').default('').asString(),
     // YCloud Configuration
     YCLOUD_API_KEY: get('YCLOUD_API_KEY').default('').asString(),
@@ -36,4 +37,5 @@ export const envs = {
     YCLOUD_EZEQUIEL_PHONE: get('YCLOUD_EZEQUIEL_PHONE').default('').asString(),
     YCLOUD_DENIS_PHONE: get('YCLOUD_DENIS_PHONE').default('').asString(),
     YCLOUD_MARTIN_PHONE: get('YCLOUD_MARTIN_PHONE').default('').asString(),
+    YCLOUD_JULIAN_PHONE: get('YCLOUD_JULIAN_PHONE').default('').asString(),
 };

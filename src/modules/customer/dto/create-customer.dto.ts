@@ -208,7 +208,7 @@ export class CreateClientDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.toUpperCase() : value,
   )
-  siguiendo?: 'EZEQUIEL' | 'DENIS' | 'MARTIN' | 'SIN_ASIGNAR';
+  siguiendo?: 'EZEQUIEL' | 'DENIS' | 'MARTIN' | 'JULIAN' | 'SIN_ASIGNAR';
 
   @ApiProperty({
     enum: ['INSTAGRAM', 'WEB', 'WHATSAPP', 'FACEBOOK', 'OTRO'],

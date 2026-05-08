@@ -549,6 +549,7 @@ export class CustomerFollowUpService {
       EZEQUIEL: { email: envs.FOLLOW_UP_NOTIFY_EZEQUIEL_EMAIL, displayName: 'Ezequiel' },
       DENIS: { email: envs.FOLLOW_UP_NOTIFY_DENIS_EMAIL, displayName: 'Denis' },
       MARTIN: { email: envs.FOLLOW_UP_NOTIFY_MARTIN_EMAIL, displayName: 'Martín' },
+      JULIAN: { email: envs.FOLLOW_UP_NOTIFY_JULIAN_EMAIL, displayName: 'Julian' },
       SIN_ASIGNAR: {
         email: envs.FOLLOW_UP_NOTIFY_SIN_ASIGNAR_EMAIL,
         displayName: 'equipo comercial',

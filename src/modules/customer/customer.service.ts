@@ -363,7 +363,7 @@ export class ClientsService {
     if (dto.siguiendo !== undefined) {
       dto.siguiendo = this.cleanCrmData(dto.siguiendo);
       if (dto.siguiendo) {
-        const siguiendoValidos = ['EZEQUIEL', 'DENIS', 'MARTIN', 'SIN_ASIGNAR'];
+        const siguiendoValidos = ['EZEQUIEL', 'DENIS', 'MARTIN', 'JULIAN', 'SIN_ASIGNAR'];
         dto.siguiendo = CustomValidators.validateEnum(dto.siguiendo, siguiendoValidos, 'siguiendo');
       }
     }
