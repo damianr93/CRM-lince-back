@@ -1,10 +1,8 @@
 import {
   IsString,
-  IsEmail,
   IsEnum,
   MaxLength,
   IsOptional,
-  IsNotEmpty,
   IsBoolean,
   IsNumber,
   ValidateNested,
@@ -101,20 +99,20 @@ export class CreateClientDto {
     example: '+54 9 351 555-1234',
     description: 'Teléfono de contacto',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MaxLength(20)
   @Transform(({ value }) =>
     value === null || value === undefined ? undefined : String(value),
   )
-  telefono!: string;
+  telefono?: string;
 
   @ApiProperty({
     example: 'juan@example.com',
     description: 'Correo electrónico',
   })
   @IsOptional()
-  @IsEmail()
+  @IsString()
   @Transform(({ value }) =>
     value === null || value === undefined ? undefined : String(value),
   )

@@ -35,7 +35,7 @@ export const ClientSchema = new Schema<Client>(
   {
     nombre: { type: String},
     apellido: { type: String },
-    telefono: { type: String, required: true  },
+    telefono: { type: String },
     correo: { type: String, lowercase: true },
     cabezas: { type: String },
     mesesSuplemento: { 

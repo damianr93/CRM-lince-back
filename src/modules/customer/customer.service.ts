@@ -278,19 +278,21 @@ export class ClientsService {
   }
 
   /**
-   * Valida los datos del cliente
+   * Valida los datos del cliente de forma tolerante: limpia y descarta valores
+   * inválidos pero nunca rechaza el registro completo. Diseñado para absorber
+   * datos incompletos o mal formateados provenientes de ManyChat u otras
+   * integraciones externas donde no controlamos el formato de entrada.
    */
   private validateClientData(dto: any, isUpdate: boolean = false): void {
-    // Limpiar y validar nombre (requerido)
+    // Nombre: si es placeholder/vacío lo dejamos null, no rechazamos el cliente
     if (dto.nombre !== undefined) {
       dto.nombre = this.cleanCrmData(dto.nombre);
-      if (!dto.nombre) {
-        throw new BadRequestException('El nombre es requerido y no puede estar vacío');
+      if (dto.nombre) {
+        dto.nombre = CustomValidators.sanitizeText(dto.nombre);
       }
-      dto.nombre = CustomValidators.sanitizeText(dto.nombre);
     }
 
-    // Limpiar apellido (opcional)
+    // Apellido
     if (dto.apellido !== undefined) {
       dto.apellido = this.cleanCrmData(dto.apellido);
       if (dto.apellido) {
@@ -298,25 +300,38 @@ export class ClientsService {
       }
     }
 
-    // Limpiar y validar teléfono (opcional)
+    // Teléfono: normalizar si es posible; si no llega o es inválido → '-'
     if (dto.telefono !== undefined) {
       dto.telefono = this.cleanCrmData(dto.telefono);
       if (dto.telefono) {
-        // Normalizar teléfono argentino antes de validar
         dto.telefono = this.normalizeArgentinePhone(dto.telefono);
-        dto.telefono = CustomValidators.validatePhone(dto.telefono);
+        const onlyDigits = dto.telefono.replace(/[\s\-\(\)]/g, '');
+        if (/^\d{8,15}$/.test(onlyDigits)) {
+          dto.telefono = onlyDigits;
+        }
+        // else: guardar el valor normalizado tal cual, ventas lo corrige
+      } else {
+        dto.telefono = '-';
       }
+    } else if (!isUpdate) {
+      // En creación, si no vino el campo en absoluto, poner '-'
+      dto.telefono = '-';
     }
 
-    // Limpiar y validar email (opcional)
+    // Email: si el formato es inválido descartarlo (null) en lugar de rechazar
     if (dto.correo !== undefined) {
       dto.correo = this.cleanCrmData(dto.correo);
       if (dto.correo) {
-        dto.correo = CustomValidators.validateEmail(dto.correo);
+        try {
+          dto.correo = CustomValidators.validateEmail(dto.correo);
+        } catch {
+          this.logger.warn(`Email inválido descartado: "${dto.correo}"`);
+          dto.correo = undefined;
+        }
       }
     }
 
-    // Limpiar cabezas (opcional, ahora es string)
+    // Cabezas
     if (dto.cabezas !== undefined) {
       dto.cabezas = this.cleanCrmData(dto.cabezas);
       if (dto.cabezas) {
@@ -324,7 +339,7 @@ export class ClientsService {
       }
     }
 
-    // Limpiar mesesSuplemento (opcional, ahora es string)
+    // Meses suplemento
     if (dto.mesesSuplemento !== undefined) {
       dto.mesesSuplemento = this.cleanCrmData(dto.mesesSuplemento);
       if (dto.mesesSuplemento) {
@@ -332,43 +347,59 @@ export class ClientsService {
       }
     }
 
-    // Limpiar y validar actividad (opcional, debe ser una opción válida)
+    // Actividad: si el valor no es válido, descartar (queda sin asignar)
     if (dto.actividad !== undefined) {
       dto.actividad = this.cleanCrmData(dto.actividad);
       if (dto.actividad) {
-        const actividadesValidas = ['CRIA', 'RECRIA', 'MIXTO', 'DISTRIBUIDOR'];
-        dto.actividad = CustomValidators.validateEnum(dto.actividad, actividadesValidas, 'actividad');
+        try {
+          dto.actividad = CustomValidators.validateEnum(dto.actividad, ['CRIA', 'RECRIA', 'MIXTO', 'DISTRIBUIDOR'], 'actividad');
+        } catch {
+          this.logger.warn(`Actividad inválida descartada: "${dto.actividad}"`);
+          dto.actividad = undefined;
+        }
       }
     }
 
-    // Limpiar y validar medioAdquisicion (opcional, debe ser una opción válida)
+    // Medio de adquisición: si inválido → undefined (schema aplica default 'OTRO')
     if (dto.medioAdquisicion !== undefined) {
       dto.medioAdquisicion = this.cleanCrmData(dto.medioAdquisicion);
       if (dto.medioAdquisicion) {
-        const mediosValidos = ['INSTAGRAM', 'WEB', 'WHATSAPP', 'FACEBOOK', 'OTRO'];
-        dto.medioAdquisicion = CustomValidators.validateEnum(dto.medioAdquisicion, mediosValidos, 'medioAdquisicion');
+        try {
+          dto.medioAdquisicion = CustomValidators.validateEnum(dto.medioAdquisicion, ['INSTAGRAM', 'WEB', 'WHATSAPP', 'FACEBOOK', 'OTRO'], 'medioAdquisicion');
+        } catch {
+          this.logger.warn(`MedioAdquisicion inválido descartado: "${dto.medioAdquisicion}"`);
+          dto.medioAdquisicion = undefined;
+        }
       }
     }
 
-    // Limpiar y validar estado (opcional, debe ser una opción válida)
+    // Estado: si inválido → undefined (schema aplica default 'PENDIENTE')
     if (dto.estado !== undefined) {
       dto.estado = this.cleanCrmData(dto.estado);
       if (dto.estado) {
-        const estadosValidos = ['PENDIENTE', 'NO_CONTESTO', 'SE_COTIZO_Y_PENDIENTE', 'SE_COTIZO_Y_NO_INTERESO', 'DERIVADO_A_DISTRIBUIDOR', 'COMPRO'];
-        dto.estado = CustomValidators.validateEnum(dto.estado, estadosValidos, 'estado');
+        try {
+          dto.estado = CustomValidators.validateEnum(dto.estado, ['PENDIENTE', 'NO_CONTESTO', 'SE_COTIZO_Y_PENDIENTE', 'SE_COTIZO_Y_NO_INTERESO', 'DERIVADO_A_DISTRIBUIDOR', 'COMPRO'], 'estado');
+        } catch {
+          this.logger.warn(`Estado inválido descartado: "${dto.estado}"`);
+          dto.estado = undefined;
+        }
       }
     }
 
-    // Limpiar y validar siguiendo (opcional, debe ser una opción válida)
+    // Siguiendo: si inválido → undefined (schema aplica default 'SIN_ASIGNAR')
     if (dto.siguiendo !== undefined) {
       dto.siguiendo = this.cleanCrmData(dto.siguiendo);
       if (dto.siguiendo) {
-        const siguiendoValidos = ['EZEQUIEL', 'DENIS', 'MARTIN', 'JULIAN', 'SIN_ASIGNAR'];
-        dto.siguiendo = CustomValidators.validateEnum(dto.siguiendo, siguiendoValidos, 'siguiendo');
+        try {
+          dto.siguiendo = CustomValidators.validateEnum(dto.siguiendo, ['EZEQUIEL', 'DENIS', 'MARTIN', 'JULIAN', 'SIN_ASIGNAR'], 'siguiendo');
+        } catch {
+          this.logger.warn(`Siguiendo inválido descartado: "${dto.siguiendo}"`);
+          dto.siguiendo = undefined;
+        }
       }
     }
 
-    // Limpiar observaciones (opcional)
+    // Observaciones
     if (dto.observaciones !== undefined) {
       dto.observaciones = this.cleanCrmData(dto.observaciones);
       if (dto.observaciones) {
@@ -376,7 +407,7 @@ export class ClientsService {
       }
     }
 
-    // Limpiar producto (opcional)
+    // Producto
     if (dto.producto !== undefined) {
       dto.producto = this.cleanCrmData(dto.producto);
       if (dto.producto) {
@@ -384,7 +415,7 @@ export class ClientsService {
       }
     }
 
-    // Limpiar localidad (opcional)
+    // Localidad
     if (dto.localidad !== undefined) {
       dto.localidad = this.cleanCrmData(dto.localidad);
       if (dto.localidad) {
@@ -392,7 +423,7 @@ export class ClientsService {
       }
     }
 
-    // Limpiar provincia (opcional)
+    // Provincia
     if (dto.provincia !== undefined) {
       dto.provincia = this.cleanCrmData(dto.provincia);
       if (dto.provincia) {
