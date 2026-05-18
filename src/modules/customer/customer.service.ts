@@ -121,15 +121,16 @@ export class ClientsService {
         this.validateClientData(dto, true);
       }
 
-      // Verificar si el teléfono ya existe en otro cliente
+      // Verificar si el teléfono ya existe en otro cliente → marcar reconsulta, nunca bloquear
       if (dto.telefono) {
-        const existingClient = await this.clientModel.findOne({ 
+        const existingClient = await this.clientModel.findOne({
           telefono: dto.telefono,
           _id: { $ne: id }
         });
         if (existingClient) {
-          throw new BadRequestException(
-            `Ya existe otro cliente con el teléfono ${dto.telefono}`
+          dto.isReconsulta = true;
+          this.logger.log(
+            `Reconsulta detectada en update para el teléfono ${dto.telefono}, cliente existente ${existingClient._id}`,
           );
         }
       }
