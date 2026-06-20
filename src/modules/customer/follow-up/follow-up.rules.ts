@@ -33,7 +33,7 @@ export const CUSTOMER_FOLLOW_UP_RULES: Partial<Record<CustomerStatus, FollowUpRu
   //   delivery: getActiveChannels(),
   // },
   COMPRO: {
-    delayMs: 3 * 60 * 1000, // TEST: 3 minutos
+    delayMs: 1 * 60 * 1000, // TEST: 1 minuto
     templateId: 'SATISFACTION_14D',
     delivery: getActiveChannels(),
   },
