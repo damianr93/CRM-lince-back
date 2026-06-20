@@ -1,6 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SatisfactionService } from '../satisfaction/satisfaction.service';
 
+// Valores que el Flow puede mandar que difieren del enum del schema
+const VALORACION_MAP: Record<string, string> = {
+  CALIDAD: 'CALIDAD',
+  PRECIO_CALIDAD: 'CALIDAD',
+  TIEMPO_ENTREGA: 'TIEMPO_ENTREGA',
+  ATENCION: 'ATENCION',
+  RESOLUCION_INCONVENIENTES: 'RESOLUCION_INCONVENIENTES',
+};
+
+const INCONVENIENTES_MAP: Record<string, string> = {
+  EXCELENTE: 'EXCELENTE',
+  BUENA: 'BUENA',
+  BUENO: 'BUENA',
+  MALA: 'MALA',
+  MALO: 'MALA',
+  N_A: 'N_A',
+};
+
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
@@ -8,10 +26,12 @@ export class WebhooksService {
   constructor(private readonly satisfactionService: SatisfactionService) {}
 
   async processYCloudEvent(body: any): Promise<void> {
-    this.logger.log(`YCloud event type: ${body?.type} | message type: ${body?.data?.message?.type} | interactive type: ${body?.data?.message?.interactive?.type}`);
+    this.logger.log(
+      `YCloud event: type=${body?.type} | msg.type=${body?.data?.message?.type} | interactive.type=${body?.data?.message?.interactive?.type} | context.type=${body?.data?.message?.interactive?.context?.type}`,
+    );
 
     if (body?.type !== 'whatsapp.inbound_message.received') {
-      this.logger.warn(`YCloud event ignorado (tipo desconocido): ${body?.type}`);
+      this.logger.warn(`Event ignorado: ${body?.type}`);
       return;
     }
 
@@ -22,16 +42,26 @@ export class WebhooksService {
     }
 
     const interactive = message?.interactive;
-    if (interactive?.type !== 'nfm_reply' || interactive?.nfm_reply?.name !== 'flow') {
-      this.logger.warn(`Interactive ignorado: type=${interactive?.type} name=${interactive?.nfm_reply?.name}`);
+
+    // YCloud puede poner nfm_reply directo en interactive o dentro de context
+    const isNfmReply =
+      interactive?.type === 'nfm_reply' ||
+      interactive?.context?.type === 'nfm_reply';
+    const nfmReply = interactive?.nfm_reply ?? interactive?.context?.nfm_reply;
+
+    if (!isNfmReply || nfmReply?.name !== 'flow') {
+      this.logger.warn(
+        `Interactive ignorado: type=${interactive?.type} context.type=${interactive?.context?.type} nfm_reply.name=${nfmReply?.name}`,
+      );
       return;
     }
 
+    // El from del mensaje es el cliente; el from del context es el asesor (emisor original)
     const phone: string = message.from;
 
     let responseJson: Record<string, any>;
     try {
-      responseJson = JSON.parse(interactive.nfm_reply.response_json);
+      responseJson = JSON.parse(nfmReply.response_json);
     } catch {
       this.logger.error('No se pudo parsear response_json del flow');
       return;
@@ -52,13 +82,13 @@ export class WebhooksService {
       atencionComercial: n(responseJson.atencionComercial),
       atencionAdmin: n(responseJson.atencionAdmin),
       nps: n(responseJson.nps),
-      valoracion: responseJson.factorImportante,
-      anteInconvenientes: responseJson.anteInconvenientes,
+      valoracion: VALORACION_MAP[responseJson.factorImportante] ?? undefined,
+      anteInconvenientes: INCONVENIENTES_MAP[responseJson.anteInconvenientes] ?? undefined,
       porQueNosCompra: responseJson.porQueNosCompra,
       comentarios: responseJson.comentarios,
       source: 'FLOW',
     } as any);
 
-    this.logger.log(`Encuesta de satisfacción guardada desde Flow | Tel: ${phone}`);
+    this.logger.log(`Encuesta guardada desde Flow | Tel: ${phone} | Nombre: ${responseJson.nombre}`);
   }
 }
