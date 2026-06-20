@@ -200,7 +200,13 @@ export class YCloudMessagingChannel implements MessagingChannel {
       return;
     }
 
-    const errorData = await response.json().catch(() => ({}));
+    const rawText = await response.text().catch(() => '');
+    let errorData: any = {};
+    try { errorData = JSON.parse(rawText); } catch { /* no json */ }
+
+    this.logger.error(
+      `YCloud HTTP ${response.status} ${response.statusText} | body: ${rawText}`,
+    );
 
     if (this.isContactNotFoundError(errorData)) {
       await this.createContact(toNumber);
@@ -223,7 +229,7 @@ export class YCloudMessagingChannel implements MessagingChannel {
       return;
     }
 
-    throw new Error(`Error de YCloud: ${errorData.message || response.statusText}`);
+    throw new Error(`Error de YCloud ${response.status}: ${errorData.message || errorData.error || rawText || response.statusText}`);
   }
 
   private buildTemplatePayload(
