@@ -24,10 +24,10 @@ export class YCloudMessagingChannel implements MessagingChannel {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   
-  private readonly templateMap: Record<string, { name: string; languageCode: string }> = {
+  private readonly templateMap: Record<string, { name: string; languageCode: string; flowButton?: boolean }> = {
     QUOTE_PENDING_48H: { name: 'followup48', languageCode: 'es_AR' },
     NO_RESPONSE_24H: { name: 'followup24', languageCode: 'es_AR' },
-    SATISFACTION_14D: { name: 'encuesta_calidad', languageCode: 'es_AR' },
+    SATISFACTION_14D: { name: 'encuesta_calidad', languageCode: 'es_AR', flowButton: true },
   };
 
   constructor(public readonly type: MessageChannelType) {
@@ -241,14 +241,15 @@ export class YCloudMessagingChannel implements MessagingChannel {
     if (!def) return null;
 
     const components: any[] = [];
-    // Si tus plantillas usan variables, agregalas aquí en el mismo orden
-    // components.push({
-    //   type: 'body',
-    //   parameters: [
-    //     { type: 'text', text: ctx?.nombre ?? '' },
-    //     { type: 'text', text: ctx?.producto ?? '' },
-    //   ],
-    // });
+
+    if (def.flowButton) {
+      components.push({
+        type: 'button',
+        sub_type: 'flow',
+        index: '0',
+        parameters: [{ type: 'action', action: { flow_token: 'unused' } }],
+      });
+    }
 
     const template: any = {
       name: def.name,
