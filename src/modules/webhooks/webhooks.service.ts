@@ -8,13 +8,24 @@ export class WebhooksService {
   constructor(private readonly satisfactionService: SatisfactionService) {}
 
   async processYCloudEvent(body: any): Promise<void> {
-    if (body?.type !== 'whatsapp.inbound_message.received') return;
+    this.logger.log(`YCloud event type: ${body?.type} | message type: ${body?.data?.message?.type} | interactive type: ${body?.data?.message?.interactive?.type}`);
+
+    if (body?.type !== 'whatsapp.inbound_message.received') {
+      this.logger.warn(`YCloud event ignorado (tipo desconocido): ${body?.type}`);
+      return;
+    }
 
     const message = body?.data?.message;
-    if (message?.type !== 'interactive') return;
+    if (message?.type !== 'interactive') {
+      this.logger.warn(`Mensaje ignorado (no interactivo): ${message?.type}`);
+      return;
+    }
 
     const interactive = message?.interactive;
-    if (interactive?.type !== 'nfm_reply' || interactive?.nfm_reply?.name !== 'flow') return;
+    if (interactive?.type !== 'nfm_reply' || interactive?.nfm_reply?.name !== 'flow') {
+      this.logger.warn(`Interactive ignorado: type=${interactive?.type} name=${interactive?.nfm_reply?.name}`);
+      return;
+    }
 
     const phone: string = message.from;
 
