@@ -36,28 +36,24 @@ export class WebhooksService {
     }
 
     const message = body?.data?.message;
-    if (message?.type !== 'interactive') {
-      this.logger.warn(`Mensaje ignorado (no interactivo): ${message?.type}`);
+
+    // YCloud no incluye message.type — el campo interactive está directo en el message
+    const interactive = message?.interactive;
+    if (!interactive) {
+      this.logger.warn(`Mensaje ignorado (sin campo interactive): ${JSON.stringify(Object.keys(message ?? {}))}`);
       return;
     }
 
-    const interactive = message?.interactive;
-
-    // YCloud puede poner nfm_reply directo en interactive o dentro de context
-    const isNfmReply =
-      interactive?.type === 'nfm_reply' ||
-      interactive?.context?.type === 'nfm_reply';
-    const nfmReply = interactive?.nfm_reply ?? interactive?.context?.nfm_reply;
-
-    if (!isNfmReply || nfmReply?.name !== 'flow') {
+    const nfmReply = interactive?.nfm_reply;
+    if (interactive?.type !== 'nfm_reply' || nfmReply?.name !== 'flow') {
       this.logger.warn(
-        `Interactive ignorado: type=${interactive?.type} context.type=${interactive?.context?.type} nfm_reply.name=${nfmReply?.name}`,
+        `Interactive ignorado: type=${interactive?.type} nfm_reply.name=${nfmReply?.name}`,
       );
       return;
     }
 
-    // El from del mensaje es el cliente; el from del context es el asesor (emisor original)
-    const phone: string = message.from;
+    // YCloud: message.from = teléfono del cliente (quien completó el flow)
+    const phone: string = message.from ?? message.to;
 
     let responseJson: Record<string, any>;
     try {
