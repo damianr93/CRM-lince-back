@@ -35,25 +35,26 @@ export class WebhooksService {
       return;
     }
 
-    const message = body?.data?.message;
-
-    // YCloud no incluye message.type — el campo interactive está directo en el message
-    const interactive = message?.interactive;
-    if (!interactive) {
-      this.logger.warn(`Mensaje ignorado (sin campo interactive): ${JSON.stringify(Object.keys(message ?? {}))}`);
+    // YCloud usa body.whatsappInboundMessage, no body.data.message
+    const message = body?.whatsappInboundMessage;
+    if (!message) {
+      this.logger.warn(`Payload sin whatsappInboundMessage: keys=${JSON.stringify(Object.keys(body ?? {}))}`);
       return;
     }
 
+    if (message.type !== 'interactive') {
+      this.logger.warn(`Mensaje ignorado (no interactivo): ${message.type}`);
+      return;
+    }
+
+    const interactive = message.interactive;
     const nfmReply = interactive?.nfm_reply;
     if (interactive?.type !== 'nfm_reply' || nfmReply?.name !== 'flow') {
-      this.logger.warn(
-        `Interactive ignorado: type=${interactive?.type} nfm_reply.name=${nfmReply?.name}`,
-      );
+      this.logger.warn(`Interactive ignorado: type=${interactive?.type} nfm_reply.name=${nfmReply?.name}`);
       return;
     }
 
-    // YCloud: message.from = teléfono del cliente (quien completó el flow)
-    const phone: string = message.from ?? message.to;
+    const phone: string = message.from;
 
     let responseJson: Record<string, any>;
     try {
