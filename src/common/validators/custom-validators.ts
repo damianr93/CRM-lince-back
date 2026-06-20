@@ -47,7 +47,7 @@ export class CustomValidators {
   /**
    * Normaliza números de teléfono argentinos
    */
-  private static normalizeArgentinePhone(phone: string): string {
+  public static normalizeArgentinePhone(phone: string): string {
     // Si empieza con +549, removerlo
     if (phone.startsWith('+549')) {
       return phone.substring(4);

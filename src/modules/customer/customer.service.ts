@@ -44,13 +44,7 @@ export class ClientsService {
         }
       }
 
-      dto.isReconsulta = isReconsulta;
-
-      const createdCustomer = await this.clientModel.create(dto);
-
-      if (!createdCustomer) {
-        throw new BadRequestException('No se pudo crear el cliente');
-      }
+      const createdCustomer = await this.clientModel.create({ ...dto, isReconsulta });
 
       this.logger.log(`Cliente creado exitosamente: ${createdCustomer._id}`);
 
@@ -76,10 +70,11 @@ export class ClientsService {
     }
   }
 
-  async findAll() {
+  async findAll(page = 1, limit = 100) {
     try {
-      const clients = await this.clientModel.find().lean().sort({ createdAt: -1 });
-      this.logger.log(`Se obtuvieron ${clients.length} clientes`);
+      const skip = (page - 1) * limit;
+      const clients = await this.clientModel.find().lean().sort({ createdAt: -1 }).skip(skip).limit(limit);
+      this.logger.log(`Se obtuvieron ${clients.length} clientes (página ${page}, límite ${limit})`);
       return clients;
     } catch (error) {
       this.logger.error(`Error al obtener clientes: ${error.message}`, error.stack);
@@ -128,7 +123,7 @@ export class ClientsService {
           _id: { $ne: id }
         });
         if (existingClient) {
-          dto.isReconsulta = true;
+          (dto as any).isReconsulta = true;
           this.logger.log(
             `Reconsulta detectada en update para el teléfono ${dto.telefono}, cliente existente ${existingClient._id}`,
           );
@@ -200,43 +195,6 @@ export class ClientsService {
   }
 
   /**
-   * Normaliza números de teléfono argentinos
-   */
-  private normalizeArgentinePhone(phone: string): string {
-    if (!phone) return phone;
-    
-    // Remover espacios, guiones y paréntesis
-    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    
-    // Si empieza con +549, removerlo
-    if (cleanPhone.startsWith('+549')) {
-      return cleanPhone.substring(4);
-    }
-    
-    // Si empieza con 549, removerlo
-    if (cleanPhone.startsWith('549')) {
-      return cleanPhone.substring(3);
-    }
-    
-    // Si empieza con +54, removerlo
-    if (cleanPhone.startsWith('+54')) {
-      return cleanPhone.substring(3);
-    }
-    
-    // Si empieza con 54, removerlo
-    if (cleanPhone.startsWith('54')) {
-      return cleanPhone.substring(2);
-    }
-    
-    // Si empieza con 0, removerlo (código de área local)
-    if (cleanPhone.startsWith('0')) {
-      return cleanPhone.substring(1);
-    }
-    
-    return cleanPhone;
-  }
-
-  /**
    * Limpia datos del CRM/ManyChat removiendo placeholders y valores inválidos
    */
   private cleanCrmData(value: any): any {
@@ -305,7 +263,7 @@ export class ClientsService {
     if (dto.telefono !== undefined) {
       dto.telefono = this.cleanCrmData(dto.telefono);
       if (dto.telefono) {
-        dto.telefono = this.normalizeArgentinePhone(dto.telefono);
+        dto.telefono = CustomValidators.normalizeArgentinePhone(dto.telefono.replace(/[\s\-\(\)]/g, ''));
         const onlyDigits = dto.telefono.replace(/[\s\-\(\)]/g, '');
         if (/^\d{8,15}$/.test(onlyDigits)) {
           dto.telefono = onlyDigits;

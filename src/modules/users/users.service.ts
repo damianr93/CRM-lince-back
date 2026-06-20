@@ -23,9 +23,7 @@ export class UsersService {
 
     const hash = await bcrypt.hash(password, 10);
 
-    createUserDto.password = hash;
-
-    return this.userModel.create(createUserDto);
+    return this.userModel.create({ ...createUserDto, password: hash });
   }
 
   findOne(id: string) {

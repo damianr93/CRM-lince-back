@@ -2,15 +2,7 @@ import { Controller, Get, Query, Res } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import type { Response } from 'express';
 import { Public } from '../auth/decorators/public.decorators';
-
-type LocationFilters = {
-  year?: number;
-  startDate?: string;
-  endDate?: string;
-  provincias?: string[];
-  paises?: string[];
-  zonas?: string[];
-};
+import { LocationFilters } from './dto/location-filters.dto';
 
 @Controller('analytics')
 export class AnalyticsController {

@@ -1,7 +1,7 @@
 import { YCloudMessagingChannel } from './ycloud-api.channel';
 import { InternalEmailChannel } from './internal-email.channel';
 import { MessagingChannel } from './message-channel.interface';
-import { envs } from '../../../../config/envs';
+import { isChannelActive } from './channel-config';
 
 export const MessagingProviders = [
   {
@@ -9,16 +9,14 @@ export const MessagingProviders = [
     useFactory: (): MessagingChannel[] => {
       const channels: MessagingChannel[] = [];
 
-      // Agregar YCloud si está habilitado
-      if (envs.YCLOUD_ENABLED) {
+      if (isChannelActive('YCLOUD_WHATSAPP')) {
         channels.push(new YCloudMessagingChannel('YCLOUD_WHATSAPP'));
       }
 
-      // Agregar canal de correos internos (siempre activo)
+      // Email interno: siempre activo
       channels.push(new InternalEmailChannel('INTERNAL_EMAIL'));
 
       return channels;
     },
   },
 ];
-

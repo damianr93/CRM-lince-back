@@ -13,66 +13,50 @@ export class SatisfactionService {
 
   async create(createSatisfactionDto: CreateSatisfactionDto) {
     try {
-      const createdSatisfaction = await this.satisfactionModel.create(createSatisfactionDto);
-      if (!createdSatisfaction) {
-        throw new BadRequestException('Error al cargar la respuesta de satisfacción');
-      }
-      return createdSatisfaction;
-      
+      return await this.satisfactionModel.create(createSatisfactionDto);
     } catch (error) {
       throw new InternalServerErrorException('Error al cargar la respuesta de satisfacción');
     }
   }
 
-  async findAll(): Promise<Satisfaction[] | any[]> {
+  async findAll(): Promise<any[]> {
     try {
-      const satisfactions = await this.satisfactionModel.find().lean().sort({ createdAt: -1 });
-      if (!satisfactions) {
-        throw new BadRequestException('Error al obtener las respuestas de satisfacción');
-      }
-      if(satisfactions.length === 0){
-        throw new NotFoundException('No se encontraron respuestas de satisfacción');
-      }
-      return satisfactions;
-      
+      return await this.satisfactionModel.find().lean().sort({ createdAt: -1 });
     } catch (error) {
       throw new InternalServerErrorException('Error al obtener las respuestas de satisfacción');
-      
     }
   }
 
-  async findOne(id: string): Promise<Satisfaction | any> {
+  async findOne(id: string): Promise<any> {
     try {
       const satisfaction = await this.satisfactionModel.findById(id).lean();
-      if(!satisfaction) throw new NotFoundException('Respuesta de satisfacción no encontrada');
+      if (!satisfaction) throw new NotFoundException('Respuesta de satisfacción no encontrada');
       return satisfaction;
     } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Error al obtener la respuesta de satisfacción');
-      
     }
   }
 
-  async update(id: string, updateSatisfactionDto: UpdateSatisfactionDto): Promise<Satisfaction | any> {
+  async update(id: string, updateSatisfactionDto: UpdateSatisfactionDto): Promise<any> {
     try {
       const updatedSatisfaction = await this.satisfactionModel.findByIdAndUpdate(id, updateSatisfactionDto, { new: true }).lean();
-      if (!updatedSatisfaction) {
-        throw new NotFoundException('Respuesta de satisfacción no encontrada');
-      }
+      if (!updatedSatisfaction) throw new NotFoundException('Respuesta de satisfacción no encontrada');
       return updatedSatisfaction;
     } catch (error) {
-      throw new InternalServerErrorException('Error al actualizar la respuesta de satisfacción');      
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Error al actualizar la respuesta de satisfacción');
     }
   }
 
   async remove(id: string) {
     try {
       const deletedSatisfaction = await this.satisfactionModel.findByIdAndDelete(id);
-      if (!deletedSatisfaction) {
-        throw new NotFoundException('Respuesta de satisfacción no encontrada');
-      }
+      if (!deletedSatisfaction) throw new NotFoundException('Respuesta de satisfacción no encontrada');
       return { message: 'Respuesta de satisfacción eliminada correctamente' };
     } catch (error) {
-      throw new InternalServerErrorException('Error al eliminar la respuesta de satisfacción');      
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Error al eliminar la respuesta de satisfacción');
     }
   }
 }

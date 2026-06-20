@@ -7,6 +7,7 @@ import {
 import { Types } from 'mongoose';
 import { FollowUpEventsService } from './follow-up-events.service';
 import { UpdateFollowUpEventStatusDto } from './dto/update-follow-up-event-status.dto';
+import { CustomValidators } from 'src/common/validators/custom-validators';
 
 @Controller('follow-up/events')
 export class FollowUpEventsController {
@@ -17,6 +18,7 @@ export class FollowUpEventsController {
     @Param('id') id: string,
     @Body() dto: UpdateFollowUpEventStatusDto,
   ) {
+    CustomValidators.validateMongoId(id, 'id');
     const eventObjectId = new Types.ObjectId(id);
 
     if (dto.status === 'COMPLETED') {

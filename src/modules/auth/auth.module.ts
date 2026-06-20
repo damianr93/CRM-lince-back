@@ -14,7 +14,6 @@ import { UserProviders } from '../users/users.providers';
     JwtModule.register({
       global: true,
       secret: envs.JWT_SECTRET,
-      signOptions: { expiresIn: '60s' },
     }),
     DatabaseModule,
   ],

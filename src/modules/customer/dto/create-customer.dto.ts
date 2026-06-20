@@ -238,12 +238,4 @@ export class CreateClientDto {
   )
   createdAt?: string;
 
-  @ApiPropertyOptional({
-    description: 'Marca si el registro es una reconsulta detectada automáticamente',
-    default: false,
-    readOnly: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  isReconsulta?: boolean;
 }

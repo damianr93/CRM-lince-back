@@ -206,14 +206,14 @@ export class CustomerFollowUpService {
       const payload: MessagePayload = {
         recipient: deliveryResolution.value,
         body: messageBody,
-        subject: subject, 
+        subject: subject,
         metadata: {
           customerId: customer._id?.toString(),
           customerName: customer.nombre,
           customerLastName: customer.apellido,
           templateId: task.templateId,
           status: customer.estado,
-          advisor: customer.siguiendo, // ← Pasar el asesor aquí
+          advisor: customer.siguiendo,
         },
       };
 
@@ -235,32 +235,9 @@ export class CustomerFollowUpService {
       // Enviar correo de confirmación al asesor
       await this.sendTaskResultEmail(task, customer, 'SENT', null);
     } catch (error: any) {
-      // RespondIOContactNotFoundError eliminado - ya no se usa RESPOND_IO
-
       const message =
         error?.message ?? 'Error desconocido al enviar la tarea de seguimiento';
-      
-      // Manejo específico para errores de WhatsApp WebJS
-      if (message.includes('WhatsApp WebJS client no está listo')) {
-        this.logger.warn(
-          `WhatsApp WebJS no está disponible para la tarea ${task._id.toString()}. Reintentando en el próximo ciclo.`,
-        );
-        
-        // Marcar como PENDING para reintentar en el próximo ciclo
-        await this.taskModel.updateOne(
-          { _id: task._id },
-          {
-            $set: {
-              status: 'PENDING',
-              executeAt: new Date(Date.now() + 5 * 60 * 1000), // Reintentar en 5 minutos
-              error: 'WhatsApp WebJS no disponible - reintentando',
-            },
-            $inc: { attempts: -1 }, // No contar este intento
-          },
-        );
-        return;
-      }
-      
+
       this.logger.error(
         `Failed to process follow-up task ${task._id.toString()}: ${message}`,
         error?.stack,
@@ -378,75 +355,6 @@ export class CustomerFollowUpService {
     } catch (error: any) {
       this.logger.error(
         `Failed to send manual follow-up notification to ${email}: ${error?.message ?? 'unknown error'}`,
-        error?.stack,
-      );
-    }
-  }
-
-  private async sendAdvisorReminderEmail(event: FollowUpEvent): Promise<void> {
-    const { email, displayName } = this.resolveAssigneeEmail(event.assignedTo);
-
-    if (!email) {
-      this.logger.warn(
-        `No notification email configured for assignee ${event.assignedTo ?? 'sin asignar'} (event ${
-          event._id?.toString?.() ?? 'n/a'
-        }).`,
-      );
-      return;
-    }
-
-    const customerFullName = [event.customerName, event.customerLastName]
-      .filter((value) => Boolean(value && value.trim().length > 0))
-      .join(' ')
-      .trim();
-
-    const statusLabel = this.humanizeStatus(event.triggerStatus);
-    const scheduledDate = this.formatDateTime(event.scheduledFor);
-    const contactLine = this.buildContactLine(event);
-
-    const subject = `📋 Recordatorio de Seguimiento - ${customerFullName || 'Cliente sin nombre'} • ${statusLabel}`;
-
-    const bodyLines = [
-      `Hola ${displayName},`,
-      '',
-      'Se ha programado un seguimiento automático para el siguiente cliente:',
-      '',
-      `• Cliente: ${customerFullName || 'Cliente sin nombre'}`,
-      `• Estado que disparó: ${statusLabel}`,
-      `• Producto: ${event.product ?? 'Sin especificar'}`,
-      `• Programado para: ${scheduledDate}`,
-      contactLine ? `• Contacto: ${contactLine}` : null,
-      '',
-      'Mensaje sugerido:',
-      '',
-      event.message,
-      '',
-      'El sistema intentará enviar el mensaje automáticamente. Si hay algún problema, recibirás una notificación adicional.',
-      '',
-      '— Lince IT',
-    ].filter((line): line is string => line !== null);
-
-    const payload: MessagePayload = {
-      recipient: email,
-      subject,
-      body: bodyLines.join('\n'),
-      metadata: {
-        followUpEventId: event._id?.toString(),
-        customerId: event.customerId?.toString?.(),
-        templateId: event.templateId,
-        assignedTo: event.assignedTo,
-        type: 'ADVISOR_REMINDER',
-      },
-    };
-
-    try {
-      await this.messagingGateway.dispatch('INTERNAL_EMAIL', payload);
-      this.logger.log(
-        `Advisor reminder email sent to ${email} for event ${event._id?.toString?.() ?? 'n/a'}`,
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `Failed to send advisor reminder email to ${email}: ${error?.message ?? 'unknown error'}`,
         error?.stack,
       );
     }
@@ -666,7 +574,7 @@ export class CustomerFollowUpService {
   ): { value: string; optionIndex: number; option: FollowUpDeliveryOption } | null {
     for (let index = 0; index < options.length; index += 1) {
       const option = options[index];
-      const value = this.extractContactValueForChannel(customer, option.channel, option.contactPreference);
+      const value = this.extractContactValue(customer, option.contactPreference);
 
       if (value) {
         return { value, optionIndex: index, option };
@@ -692,18 +600,6 @@ export class CustomerFollowUpService {
     return null;
   }
 
-  private extractContactValueForChannel(
-    customer: Client,
-    channel: string,
-    preference: FollowUpDeliveryOption['contactPreference'],
-  ): string | null {
-    return this.extractContactValue(customer, preference);
-  }
-
-  /**
-   * Normaliza el teléfono para WhatsApp WebJS
-   * Maneja diferentes formatos: 3804345688, 5493804345688, +5493804345688, etc.
-   */
   private normalizePhoneForWhatsApp(phone: string | null): string | null {
     if (!phone) {
       return null;

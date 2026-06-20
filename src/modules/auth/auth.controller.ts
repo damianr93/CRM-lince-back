@@ -12,13 +12,15 @@ import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorators';
 import { AuthGuard } from './auth.guard';
-import { envs } from 'src/config/envs';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
 
     @Public()
+    @UseGuards(ThrottlerGuard)
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post('login')
     async login(
         @Body() { username, password }: { username: string; password: string },
@@ -75,25 +77,9 @@ export class AuthController {
     @HttpCode(200)
     checkAuth(@Req() req: Request & { user?: any }) {
         return {
-            userId: req.user.sub,
+            userId: req.user.id,
             username: req.user.username,
             role: req.user.role,
-        };
-    }
-
-    @Public()
-    @Get('cookie-test')
-    @HttpCode(200)
-    cookieTest(@Req() req: Request) {
-        return {
-            hasCookie: !!req.cookies?.Authentication,
-            userAgent: req.get('User-Agent'),
-            secure: req.secure,
-            protocol: req.protocol,
-            headers: {
-                frontendUrl: envs.FRONTEND_URL,
-                currentOrigin: req.get('Origin'),
-            }
         };
     }
 }

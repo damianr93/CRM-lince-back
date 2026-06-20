@@ -10,11 +10,19 @@ export interface Satisfaction extends Document {
     | 'VENDEDOR'
     | 'WEB'
     | 'EXPOSICIONES'
+    | 'REDES_SOCIALES'
+    | 'RECOMENDACION_ASESOR'
+    | 'OTRO'
     | String;
   productoComprado?: boolean;
   calidad?: number;
   tiempoForme?: number;
   atencion?: number;
+  relacionPrecioCalidad?: number;
+  atencionComercial?: number;
+  atencionAdmin?: number;
+  nps?: number;
+  porQueNosCompra?: string;
   recomendacion?: 'SI' | 'NO' | 'MAYBE';
   anteInconvenientes?: 'EXCELENTE' | 'BUENA' | 'MALA' | 'N_A';
   valoracion?:
@@ -23,6 +31,7 @@ export interface Satisfaction extends Document {
     | 'ATENCION'
     | 'RESOLUCION_INCONVENIENTES';
   comentarios?: string;
+  source?: 'FLOW' | 'MANUAL';
 }
 
 export const SatisfactionSchema = new Schema<Satisfaction>(
@@ -38,12 +47,20 @@ export const SatisfactionSchema = new Schema<Satisfaction>(
         'VENDEDOR',
         'WEB',
         'EXPOSICIONES',
+        'REDES_SOCIALES',
+        'RECOMENDACION_ASESOR',
+        'OTRO',
       ],
     },
     productoComprado: { type: Boolean },
-    calidad: { type: Number, min: 1, max: 5 },
-    tiempoForme: { type: Number, min: 1, max: 5 },
-    atencion: { type: Number, min: 1, max: 5 },
+    calidad: { type: Number, min: 1, max: 10 },
+    tiempoForme: { type: Number, min: 1, max: 10 },
+    atencion: { type: Number, min: 1, max: 10 },
+    relacionPrecioCalidad: { type: Number, min: 1, max: 10 },
+    atencionComercial: { type: Number, min: 1, max: 10 },
+    atencionAdmin: { type: Number, min: 1, max: 10 },
+    nps: { type: Number, min: 1, max: 10 },
+    porQueNosCompra: { type: String },
     recomendacion: { type: String, enum: ['SI', 'NO', 'MAYBE'] },
     anteInconvenientes: {
       type: String,
@@ -60,6 +77,7 @@ export const SatisfactionSchema = new Schema<Satisfaction>(
       ],
     },
     comentarios: { type: String },
+    source: { type: String, enum: ['FLOW', 'MANUAL'] },
   },
   {
     timestamps: true,

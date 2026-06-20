@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { User } from '../users/interface/users.interface';
+import { envs } from 'src/config/envs';
 
 @Injectable()
 export class AuthService {
@@ -37,6 +38,6 @@ export class AuthService {
   }
 
   async signToken(payload: { sub: number; username: string; role: string; }) {
-    return this.jwtService.signAsync(payload, { expiresIn: '1h' });
+    return this.jwtService.signAsync(payload, { expiresIn: envs.JWT_EXPIRES_IN as any });
   }
 }

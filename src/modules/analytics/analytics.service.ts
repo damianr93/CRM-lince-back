@@ -1,9 +1,11 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { UpdateAnalyticsDto } from './dto/update-analytics.dto';
 import mongoose, { Model } from 'mongoose';
 import { Client } from '../customer/schema/customer.schema';
 import { ChannelData, ProductData, TimePoint } from './interface/analytics.interface';
+import { LocationFilters } from './dto/location-filters.dto';
+import { PROVINCE_ALIAS_MATCH } from '../geo/province-aliases';
 import { FollowUpEventsService } from '../customer/follow-up/follow-up-events.service';
 import { GeoService } from '../geo/geo.service';
 import {
@@ -31,15 +33,6 @@ type FollowUpEventView = {
   createdAt: string;
   completedAt?: string | null;
   notes?: string | null;
-};
-
-type LocationFilters = {
-  year?: number;
-  startDate?: string;
-  endDate?: string;
-  provincias?: string[];
-  paises?: string[];
-  zonas?: string[];
 };
 
 type LocationSummary = {
@@ -83,6 +76,7 @@ type LocationReport = {
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
   private readonly normalizationBatchSize = 80;
   private readonly normalizationConcurrency = 2;
   private readonly normalizationMaxBatches = 10;
@@ -186,14 +180,14 @@ export class AnalyticsService {
 
       return { totalContacts, totalReconsultas, firstTimeContacts, byChannel };
     } catch (err) {
-      console.error('Error en AnalyticsService.totales:', err);
+      this.logger.error('Error en totales', err instanceof Error ? err.stack : err);
       throw new InternalServerErrorException('Error al obtener totales de clientes');
     }
   }
 
   /**
    * Retorna un arreglo de { date: "YYYY-MM", total }, 
-   * contando cuÃ¡ntos clientes se crearon en cada mes de 2025.
+   * contando cuántos clientes se crearon en cada mes de 2025.
    */
   async evolution(year?: number): Promise<TimePoint[]> {
     try {
@@ -259,8 +253,8 @@ export class AnalyticsService {
       }
       return points;
     } catch (err) {
-      console.error('Error en AnalyticsService.evolution:', err);
-      throw new InternalServerErrorException('Error al obtener evoluciÃ³n de clientes');
+      this.logger.error('Error en evolution', err instanceof Error ? err.stack : err);
+      throw new InternalServerErrorException('Error al obtener evolución de clientes');
     }
   }
 
@@ -318,13 +312,13 @@ export class AnalyticsService {
       }
       return comparison;
     } catch (err) {
-      console.error('Error en AnalyticsService.yearlyComparison:', err);
-      throw new InternalServerErrorException('Error al obtener comparaciÃ³n anual');
+      this.logger.error('Error en yearlyComparison', err instanceof Error ? err.stack : err);
+      throw new InternalServerErrorException('Error al obtener comparación anual');
     }
   }
 
   /**
-   * Retorna un arreglo de los productos mÃ¡s consultados/comprados:
+   * Retorna un arreglo de los productos más consultados/comprados:
    *  { product, total } ordenado de mayor a menor en base a la cuenta de clientes asociados a cada producto.
    */
   async demandOfProduct(year?: number): Promise<ProductData[]> {
@@ -357,7 +351,7 @@ export class AnalyticsService {
 
       return result;
     } catch (err) {
-      console.error('Error en AnalyticsService.demandOfProduct:', err);
+      this.logger.error('Error en demandOfProduct', err instanceof Error ? err.stack : err);
       throw new InternalServerErrorException('Error al obtener demanda de productos');
     }
   }
@@ -384,32 +378,28 @@ export class AnalyticsService {
 
     const totalClients = await this.clientModel.countDocuments(createdAtMatch).exec();
 
-    const statusMap = {
-      'COMPRO': 'Compras',
-      'NO_COMPRO': 'No Compras', 
-      'PENDIENTE': 'Pendientes',
+    const statusMap: Record<string, string> = {
+      'COMPRO': 'Compró',
+      'PENDIENTE': 'Pendiente',
+      'NO_CONTESTO': 'No contestó',
+      'SE_COTIZO_Y_PENDIENTE': 'Cotizado / Pendiente',
+      'SE_COTIZO_Y_NO_INTERESO': 'Cotizado / No interesó',
+      'DERIVADO_A_DISTRIBUIDOR': 'Derivado a distribuidor',
     };
 
-    const statusCount = {
-      'Compras': 0,
-      'No Compras': 0,
-      'Pendientes': 0,
-    };
-
+    const statusCount: Record<string, number> = {};
     aggregation.forEach((entry) => {
-      const normalizedStatus = statusMap[entry._id] || 'Pendientes';
-      statusCount[normalizedStatus] += entry.count;
+      const label = statusMap[entry._id] ?? entry._id ?? 'Sin estado';
+      statusCount[label] = (statusCount[label] ?? 0) + entry.count;
     });
 
-    const result = Object.entries(statusCount).map(([status, total]) => ({
+    return Object.entries(statusCount).map(([status, total]) => ({
       status,
       total,
       percentage: totalClients > 0 ? Math.round((total / totalClients) * 100) : 0,
     }));
-
-    return result;
   } catch (err) {
-    console.error('Error en AnalyticsService.purchaseStatus:', err);
+    this.logger.error('Error en purchaseStatus', err instanceof Error ? err.stack : err);
     throw new InternalServerErrorException('Error al obtener estado de compras');
   }
 }
@@ -459,7 +449,7 @@ export class AnalyticsService {
         notes: event.notes ?? null,
       }));
     } catch (err) {
-      console.error('Error en AnalyticsService.followUpEvents:', err);
+      this.logger.error('Error en followUpEvents', err instanceof Error ? err.stack : err);
       throw new InternalServerErrorException('Error al obtener eventos de seguimiento');
     }
   }
@@ -468,7 +458,7 @@ export class AnalyticsService {
     try {
       // Ejecutar normalización en background sin bloquear la respuesta
       this.ensureNormalizedLocations(filters).catch((err) => {
-        console.error('Error normalizando ubicaciones en background:', err);
+        this.logger.error('Error normalizando ubicaciones en background', err instanceof Error ? err.stack : err);
       });
       const report = await this.buildLocationReport(filters);
       const total = report.total;
@@ -527,7 +517,7 @@ export class AnalyticsService {
         mapPoints,
       };
     } catch (err) {
-      console.error('Error en AnalyticsService.locationSummary:', err);
+      this.logger.error('Error en locationSummary', err instanceof Error ? err.stack : err);
       throw new InternalServerErrorException('Error al obtener resumen de ubicaciones');
     }
   }
@@ -536,13 +526,13 @@ export class AnalyticsService {
     try {
       // Ejecutar normalización en background sin bloquear la respuesta
       this.ensureNormalizedLocations(filters).catch((err) => {
-        console.error('Error normalizando ubicaciones en background:', err);
+        this.logger.error('Error normalizando ubicaciones en background', err instanceof Error ? err.stack : err);
       });
       const report = await this.buildLocationReport(filters);
       const provinces = this.buildHeatmapProvinces(report);
       return { total: report.total, provinces };
     } catch (err) {
-      console.error('Error en AnalyticsService.locationHeatmap:', err);
+      this.logger.error('Error en locationHeatmap', err instanceof Error ? err.stack : err);
       throw new InternalServerErrorException('Error al obtener mapa de calor');
     }
   }
@@ -550,7 +540,7 @@ export class AnalyticsService {
   async locationReportPdf(filters: LocationFilters): Promise<Buffer> {
     // Ejecutar normalización en background sin bloquear la generación del PDF
     this.ensureNormalizedLocations(filters).catch((err) => {
-      console.error('Error normalizando ubicaciones en background:', err);
+      this.logger.error('Error normalizando ubicaciones en background', err instanceof Error ? err.stack : err);
     });
     const report = await this.buildLocationReport(filters);
     const clients = await this.findClientsForReport(filters);
@@ -2013,41 +2003,14 @@ export class AnalyticsService {
   }
 
   private normalizeProvinceAlias(value: string): string {
-    const lower = value.toLowerCase();
-    const normalized = lower
+    const normalized = value
+      .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\./g, '')
       .trim();
 
-    const patterns: Array<[RegExp, string]> = [
-      [/\b(bsas|buenos aires|b a|baires)\b/i, 'Buenos Aires'],
-      [/\b(caba|ciudad autonoma)\b/i, 'Ciudad Autónoma de Buenos Aires'],
-      [/\b(cba|cordoba)\b/i, 'Córdoba'],
-      [/\b(sf|santa fe|sta fe)\b/i, 'Santa Fe'],
-      [/\b(er|entre rios)\b/i, 'Entre Ríos'],
-      [/\b(la pampa|lp)\b/i, 'La Pampa'],
-      [/\b(mza|mendoza)\b/i, 'Mendoza'],
-      [/\b(misiones)\b/i, 'Misiones'],
-      [/\b(rio negro|rionegro)\b/i, 'Río Negro'],
-      [/\b(tucuman|tuc)\b/i, 'Tucumán'],
-      [/\b(san luis)\b/i, 'San Luis'],
-      [/\b(san juan)\b/i, 'San Juan'],
-      [/\b(chaco)\b/i, 'Chaco'],
-      [/\b(chubut)\b/i, 'Chubut'],
-      [/\b(corrientes)\b/i, 'Corrientes'],
-      [/\b(formosa)\b/i, 'Formosa'],
-      [/\b(jujuy)\b/i, 'Jujuy'],
-      [/\b(la rioja)\b/i, 'La Rioja'],
-      [/\b(neuquen)\b/i, 'Neuquén'],
-      [/\b(salta)\b/i, 'Salta'],
-      [/\b(santa cruz)\b/i, 'Santa Cruz'],
-      [/\b(santiago del estero)\b/i, 'Santiago del Estero'],
-      [/\b(tierra del fuego)\b/i, 'Tierra del Fuego'],
-      [/\b(catamarca)\b/i, 'Catamarca'],
-    ];
-
-    for (const [regex, province] of patterns) {
+    for (const [regex, province] of PROVINCE_ALIAS_MATCH) {
       if (regex.test(normalized)) {
         return province;
       }

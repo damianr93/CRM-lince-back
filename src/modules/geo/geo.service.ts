@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { PROVINCE_ALIAS_REPLACE } from './province-aliases';
 
 type NominatimResult = {
   place_id: number;
@@ -235,21 +236,8 @@ export class GeoService {
   }
 
   private expandProvinceAliases(value: string): string {
-    const replacements: Array<[RegExp, string]> = [
-      [/\b(bsas|buenos aires|b a|baires)\b/gi, 'Buenos Aires'],
-      [/\b(caba|ciudad autonoma)\b/gi, 'Ciudad Autónoma de Buenos Aires'],
-      [/\b(cba|cordoba)\b/gi, 'Córdoba'],
-      [/\b(sf|santa fe|sta fe)\b/gi, 'Santa Fe'],
-      [/\b(er|entre rios)\b/gi, 'Entre Ríos'],
-      [/\b(la pampa|lp)\b/gi, 'La Pampa'],
-      [/\b(mza|mendoza)\b/gi, 'Mendoza'],
-      [/\b(rio negro|rionegro)\b/gi, 'Río Negro'],
-      [/\b(tucuman|tuc)\b/gi, 'Tucumán'],
-      [/\b(neuquen)\b/gi, 'Neuquén'],
-    ];
-
     let result = value;
-    replacements.forEach(([regex, replacement]) => {
+    PROVINCE_ALIAS_REPLACE.forEach(([regex, replacement]) => {
       result = result.replace(regex, replacement);
     });
     return result.trim();

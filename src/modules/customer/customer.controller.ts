@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Delete, UseGuards, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Delete, Res, Query } from '@nestjs/common';
 import { Response } from 'express';
 import { ClientsService } from './customer.service';
 import { CreateClientDto } from './dto/create-customer.dto';
@@ -14,8 +14,16 @@ export class ClientsController {
   }
 
   @Get()
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.clientsService.findAll(
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 100,
+    );
+  }
+
+  @Get('export/excel')
+  async downloadExcel(@Res() res: Response) {
+    await this.clientsService.generateExcel(res);
   }
 
   @Get(':id')
@@ -32,21 +40,4 @@ export class ClientsController {
   remove(@Param('id') id: string) {
     return this.clientsService.remove(id);
   }
-
-  @Get('export/excel')
-  async downloadExcel(@Res() res: Response) {
-
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="clientes_completos.xlsx"',
-    );
-
-    await this.clientsService.generateExcel(res);
-
-  }
-
 }

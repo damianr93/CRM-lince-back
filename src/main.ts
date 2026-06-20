@@ -1,11 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as compression from 'compression';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MyLogger } from './services/logger/logger';
-import { ConfigService } from '@nestjs/config';
 import { envs } from './config/envs';
 import * as cookieParser from 'cookie-parser';
 import { webcrypto } from 'crypto';
@@ -16,12 +15,7 @@ async function bootstrap() {
   }
   const app = await NestFactory.create(AppModule);
 
-  const configService = app.get(ConfigService);
   app.use(cookieParser());
-
-  app.enableVersioning({
-    type: VersioningType.URI,
-  });
 
   // Configurar orígenes permitidos
   const allowedOrigins = [envs.FRONTEND_URL];
@@ -70,13 +64,17 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('CRM API Documentation :)')
-    .setDescription('CRM a medida para Lince')
-    .setVersion('1.0')
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  if (envs.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('CRM API Documentation :)')
+      .setDescription('CRM a medida para Lince')
+      .setVersion('1.0')
+      .addCookieAuth('Authentication')
+      .addApiKey({ type: 'apiKey', name: 'codrr_token', in: 'header' }, 'codrr_token')
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   await app.listen(envs.PORT);
 }

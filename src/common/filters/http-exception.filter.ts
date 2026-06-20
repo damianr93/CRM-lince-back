@@ -54,7 +54,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         method: request.method,
         ip: request.ip,
         userAgent: request.get('User-Agent'),
-        body: request.body,
+        body: this.sanitizeBody(request.body),
         query: request.query,
         params: request.params,
         error: error,
@@ -62,7 +62,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     );
 
-    const errorResponse = {
+    const errorResponse: Record<string, unknown> = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
@@ -72,5 +72,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     response.status(status).json(errorResponse);
+  }
+
+  private sanitizeBody(body: any): any {
+    if (!body) return body;
+    const sanitized = { ...body };
+    ['password', 'token', 'secret', 'key'].forEach(field => {
+      if (sanitized[field]) sanitized[field] = '[REDACTED]';
+    });
+    return sanitized;
   }
 }

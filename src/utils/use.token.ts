@@ -1,20 +1,17 @@
 import { AuthTokenResult, IUseToken } from "src/modules/auth/interface/auth.interface";
 import * as jwt from 'jsonwebtoken'
+import { envs } from 'src/config/envs'
 
-export const useToken = (token:string): IUseToken | string => {
+export const useToken = (token: string): IUseToken | string => {
     try {
-
-        const decode = jwt.decode(token) as AuthTokenResult | any
-
-        const currentDate = new Date()
-        const expiresDate = new Date(decode.exp)
-        
+        const decode = jwt.verify(token, envs.JWT_SECTRET) as unknown as AuthTokenResult
         return {
             sub: decode.sub,
             role: decode.role,
-            isExpires: +expiresDate <= +currentDate / 1000
-        }   
+            isExpires: false,
+        }
     } catch (error) {
-        return 'Token is invalid'
+        if (error.name === 'TokenExpiredError') return 'Token expirado'
+        return 'Token inválido'
     }
 }

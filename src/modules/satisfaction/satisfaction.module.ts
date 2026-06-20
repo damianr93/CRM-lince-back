@@ -8,5 +8,6 @@ import { SatisfactionProviders } from './satisfaction.providers';
   imports: [DatabaseModule],
   controllers: [SatisfactionController],
   providers: [SatisfactionService, ...SatisfactionProviders],
+  exports: [SatisfactionService],
 })
 export class SatisfactionModule {}

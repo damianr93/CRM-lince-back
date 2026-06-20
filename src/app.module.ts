@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { MyLogger } from './services/logger/logger';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
@@ -12,6 +12,7 @@ import { ClientsModule } from './modules/customer/customer.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SatisfactionModule } from './modules/satisfaction/satisfaction.module';
 import { GeoModule } from './modules/geo/geo.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -19,16 +20,17 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     UsersModule,
     AuthModule,
     ClientsModule,
     AnalyticsModule,
     SatisfactionModule,
-    GeoModule
+    GeoModule,
+    WebhooksModule
   ],
   controllers: [AppController],
   providers: [
-    AppService,
     MyLogger,
     {
       provide: APP_GUARD,

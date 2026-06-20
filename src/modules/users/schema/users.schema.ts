@@ -6,7 +6,7 @@ export const UserSchema = new mongoose.Schema({
     role: {
         type: String,
         enum: ['ADMIN', 'USER'],
-        default: 'user'
+        default: 'USER'
     },
     password: String
 });

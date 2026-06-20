@@ -24,11 +24,10 @@ export class YCloudMessagingChannel implements MessagingChannel {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   
-  // Mapeo entre templateId interno y nombre de plantilla en YCloud
   private readonly templateMap: Record<string, { name: string; languageCode: string }> = {
     QUOTE_PENDING_48H: { name: 'followup48', languageCode: 'es_AR' },
     NO_RESPONSE_24H: { name: 'followup24', languageCode: 'es_AR' },
-    // SATISFACTION_14D: { name: 'satisfaction14', languageCode: 'es_AR' }, // habilitar cuando exista en YCloud
+    SATISFACTION_14D: { name: 'encuesta_calidad', languageCode: 'es_AR' },
   };
 
   constructor(public readonly type: MessageChannelType) {
@@ -63,14 +62,13 @@ export class YCloudMessagingChannel implements MessagingChannel {
         throw new Error(`Número de teléfono inválido: ${payload.recipient}`);
       }
 
-      // Intentar enviar mensaje: plantilla si hay mapeo, sino texto como fallback
-      const templateData = this.buildTemplatePayload(
-        (payload.metadata as any)?.templateId,
-        {
-          nombre: (payload.metadata as any)?.customerName,
-          producto: (payload.metadata as any)?.product,
-        },
-      );
+      const templateId = (payload.metadata as any)?.templateId as string | undefined;
+
+      // Plantilla de YCloud si hay mapeo, sino texto como fallback
+      const templateData = this.buildTemplatePayload(templateId, {
+        nombre: (payload.metadata as any)?.customerName,
+        producto: (payload.metadata as any)?.product,
+      });
 
       if (templateData) {
         await this.sendWhatsAppTemplate(fromNumber, formattedNumber, templateData);
